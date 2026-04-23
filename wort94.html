@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch Wort-Baukasten: Bruchzahlen</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --bg-color: #f0f3f5;
+            --card-bg: #ffffff;
+            --word-bg: #ffffff;
+            --word-border: #dcdde1;
+            --correct-color: #27ae60;
+            --wrong-color: #e74c3c;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--primary-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 700px;
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #eee;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent-color);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .number-display {
+            font-size: 3rem;
+            font-weight: bold;
+            color: var(--accent-color);
+            margin-bottom: 5px;
+        }
+
+        .instruction {
+            margin-bottom: 25px;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .drop-zone {
+            min-height: 80px;
+            border: 2px dashed #bdc3c7;
+            background-color: #fafafa;
+            border-radius: 12px;
+            padding: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-content: center;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .word-bank {
+            min-height: 80px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 20px;
+            padding: 10px;
+            border-top: 1px solid #eee;
+        }
+
+        .word-tile {
+            background: var(--word-bg);
+            border: 2px solid var(--word-border);
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            user-select: none;
+            font-weight: 500;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: all 0.2s;
+            font-size: 1rem;
+        }
+
+        .word-tile:hover {
+            border-color: var(--accent-color);
+            transform: translateY(-2px);
+        }
+
+        .word-tile.used {
+            opacity: 0.2;
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 25px;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1rem;
+        }
+
+        .btn-check { background-color: var(--correct-color); color: white; }
+        .btn-solution { background-color: #95a5a6; color: white; }
+        .btn-next { background-color: var(--accent-color); color: white; display: none; }
+
+        .feedback {
+            margin-top: 15px;
+            font-weight: bold;
+            min-height: 20px;
+        }
+
+        @media (max-width: 480px) {
+            .number-display { font-size: 2.2rem; }
+            .word-tile { padding: 6px 10px; font-size: 0.9rem; }
+            .game-container { padding: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+    <div class="number-display" id="current-number">...</div>
+    <p class="instruction">Klicke die Wörter in der richtigen Reihenfolge an:</p>
+
+    <div class="drop-zone" id="target-zone">
+        <!-- Gewählte Wörter -->
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <div class="word-bank" id="source-zone">
+        <!-- Wortvorrat -->
+    </div>
+
+    <div class="controls">
+        <button class="btn-solution" onclick="showSolution()">Lösung</button>
+        <button class="btn-check" id="check-btn" onclick="checkAnswer()">Prüfen</button>
+        <button class="btn-next" id="next-btn" onclick="nextTask()">Nächste Aufgabe</button>
+    </div>
+</div>
+
+<script>
+    const tasks = [
+        { num: "0,1", words: ["ноль", "целых", "одна", "десятая"] },
+        { num: "0,5", words: ["ноль", "целых", "пять", "десятых"] },
+        { num: "1,1", words: ["одна", "целая", "одна", "десятая"] },
+        { num: "0,01", words: ["ноль", "целых", "одна", "сотая"] },
+        { num: "2,02", words: ["две", "целых", "две", "сотых"] },
+        { num: "0,003", words: ["ноль", "целых", "три", "тысячных"] },
+        { num: "0,12", words: ["ноль", "целых", "двенадцать", "сотых"] },
+        { num: "10,21", words: ["десять", "целых", "двадцать", "одна", "сотая"] },
+        { num: "2,002", words: ["две", "целых", "две", "тысячных"] },
+        { num: "45,7", words: ["сорок", "пять", "целых", "семь", "десятых"] }
+    ];
+
+    let currentLevel = 0;
+    let currentTaskWords = [];
+
+    function initLevel() {
+        const task = tasks[currentLevel];
+        document.getElementById('current-number').textContent = task.num;
+        document.getElementById('feedback').textContent = "";
+        document.getElementById('next-btn').style.display = "none";
+        document.getElementById('check-btn').style.display = "inline-block";
+        document.getElementById('progress').style.width = `${(currentLevel / tasks.length) * 100}%`;
+        
+        currentTaskWords = [];
+        renderSourceZone();
+        renderTargetZone();
+    }
+
+    function renderSourceZone() {
+        const sourceZone = document.getElementById('source-zone');
+        sourceZone.innerHTML = '';
+        
+        // Wörter mischen
+        const shuffled = [...tasks[currentLevel].words].sort(() => Math.random() - 0.5);
+
+        shuffled.forEach((word, index) => {
+            const tile = document.createElement('div');
+            tile.className = 'word-tile';
+            tile.textContent = word;
+            tile.onclick = () => addToTarget(word, tile);
+            sourceZone.appendChild(tile);
+        });
+    }
+
+    function renderTargetZone() {
+        const targetZone = document.getElementById('target-zone');
+        targetZone.innerHTML = '';
+        currentTaskWords.forEach((word, index) => {
+            const tile = document.createElement('div');
+            tile.className = 'word-tile';
+            tile.textContent = word;
+            tile.onclick = () => removeFromTarget(index, word);
+            targetZone.appendChild(tile);
+        });
+    }
+
+    function addToTarget(word, sourceTile) {
+        currentTaskWords.push(word);
+        sourceTile.classList.add('used');
+        renderTargetZone();
+    }
+
+    function removeFromTarget(index, word) {
+        // Wort aus dem Ziel entfernen
+        currentTaskWords.splice(index, 1);
+        
+        // Das entsprechende Wort in der Quelle wieder aktivieren
+        const sourceTiles = document.querySelectorAll('#source-zone .word-tile');
+        for (let tile of sourceTiles) {
+            if (tile.textContent === word && tile.classList.contains('used')) {
+                tile.classList.remove('used');
+                break;
+            }
+        }
+        renderTargetZone();
+    }
+
+    function checkAnswer() {
+        const task = tasks[currentLevel];
+        const feedback = document.getElementById('feedback');
+        
+        if (JSON.stringify(currentTaskWords) === JSON.stringify(task.words)) {
+            feedback.textContent = "Richtig! Gut gemacht! 🎉";
+            feedback.style.color = "var(--correct-color)";
+            document.getElementById('check-btn').style.display = "none";
+            document.getElementById('next-btn').style.display = "inline-block";
+        } else {
+            feedback.textContent = "Die Reihenfolge oder Wörter stimmen noch nicht.";
+            feedback.style.color = "var(--wrong-color)";
+        }
+    }
+
+    function showSolution() {
+        currentTaskWords = [...tasks[currentLevel].words];
+        renderTargetZone();
+        
+        const sourceTiles = document.querySelectorAll('#source-zone .word-tile');
+        sourceTiles.forEach(t => t.classList.add('used'));
+
+        document.getElementById('feedback').textContent = "Hier ist die korrekte Reihenfolge.";
+        document.getElementById('feedback').style.color = "var(--primary-color)";
+        document.getElementById('check-btn').style.display = "none";
+        document.getElementById('next-btn').style.display = "inline-block";
+    }
+
+    function nextTask() {
+        currentLevel++;
+        if (currentLevel < tasks.length) {
+            initLevel();
+        } else {
+            document.getElementById('progress').style.width = "100%";
+            document.querySelector('.game-container').innerHTML = `
+                <h2 style="color:var(--correct-color)">Hervorragend!</h2>
+                <p>Du hast alle 10 Aufgaben des Baukastens gelöst.</p>
+                <button class="btn-next" style="display:inline-block; margin-top:20px" onclick="location.reload()">Nochmal starten</button>
+            `;
+        }
+    }
+
+    // Start
+    initLevel();
+</script>
+
+</body>
+</html>
