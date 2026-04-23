@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch Quiz: Richtig oder Falsch?</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --bg-color: #f4f7f6;
+            --correct-color: #27ae60;
+            --wrong-color: #e74c3c;
+            --card-bg: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--primary-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .quiz-container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .progress-container {
+            width: 100%;
+            background: #eee;
+            height: 10px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--accent-color);
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+
+        .statement-box {
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            padding: 10px;
+            font-weight: 500;
+        }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .quiz-btn {
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-true { background-color: var(--correct-color); }
+        .btn-true:hover { background-color: #219150; }
+        
+        .btn-false { background-color: var(--wrong-color); }
+        .btn-false:hover { background-color: #c0392b; }
+
+        .quiz-btn:active { transform: scale(0.95); }
+        .quiz-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        .feedback-area {
+            margin-top: 25px;
+            min-height: 60px;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: 500;
+            display: none;
+        }
+
+        .btn-next {
+            margin-top: 20px;
+            padding: 12px 25px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            display: none;
+            font-weight: bold;
+        }
+
+        /* Result Screen */
+        #result-screen { display: none; }
+        .score-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 20px auto;
+        }
+
+        @media (max-width: 480px) {
+            .statement-box { font-size: 1.1rem; }
+            .quiz-container { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header style="text-align:center; margin-bottom:10px;">
+        <h1 style="font-size: 1.5rem;">Russisch Grammatik-Check</h1>
+        <p>Bruchzahlen: Richtig oder Falsch?</p>
+    </header>
+
+    <div class="quiz-container" id="quiz-box">
+        <div class="progress-container">
+            <div class="progress-bar" id="progress"></div>
+        </div>
+
+        <div id="question-screen">
+            <div class="statement-box" id="statement">
+                Lade Aussage...
+            </div>
+
+            <div class="btn-group">
+                <button class="quiz-btn btn-true" onclick="handleAnswer(true)">
+                    <span>Richtig</span>
+                    <small>Верно</small>
+                </button>
+                <button class="quiz-btn btn-false" onclick="handleAnswer(false)">
+                    <span>Falsch</span>
+                    <small>Неверно</small>
+                </button>
+            </div>
+
+            <div class="feedback-area" id="feedback"></div>
+            <button class="btn-next" id="next-btn" onclick="nextQuestion()">Nächste Frage</button>
+        </div>
+
+        <div id="result-screen">
+            <h2>Ergebnis</h2>
+            <div class="score-circle" id="final-score">0/10</div>
+            <p id="result-text"></p>
+            <button class="btn-next" style="display:inline-block;" onclick="restartQuiz()">Nochmal starten</button>
+        </div>
+    </div>
+
+    <script>
+        const questions = [
+            {
+                text: 'Das Wort "одна" steht bei Bruchzahlen immer im weiblichen Geschlecht.',
+                correct: true,
+                explanation: 'Richtig! Bruchzahlen beziehen sich auf das weibliche Wort "часть" (Teil).'
+            },
+            {
+                text: 'Bei der Zahl 0,1 sagen wir "ноль целая".',
+                correct: false,
+                explanation: 'Falsch! Bei 0 sagen wir "ноль целых" (Genitiv Plural).'
+            },
+            {
+                text: 'Nach der Zahl 1 (одна) folgt die Form "десятая" im Singular.',
+                correct: true,
+                explanation: 'Richtig! "Одна десятая" ist Einzahl.'
+            },
+            {
+                text: 'Bei 2,2 verwenden wir die Form "две целых".',
+                correct: true,
+                explanation: 'Richtig! Ab 2 verwenden wir den Genitiv Plural "целых".'
+            },
+            {
+                text: 'Das Wort "сотых" (Hundertstel) wird nur verwendet, wenn die Zahl vor dem Komma 1 ist.',
+                correct: false,
+                explanation: 'Falsch! "Сотых" ist Plural und wird verwendet, wenn die Zahl nach dem Komma größer als 1 ist (z.B. 0,02).'
+            },
+            {
+                text: 'In der Adresse wird das Zeichen "/" als "дробь" gelesen.',
+                correct: true,
+                explanation: 'Richtig! Bei Hausnummern sagt man "дробь", nicht "целых".'
+            },
+            {
+                text: 'Das Wort "тысячная" ist eine Ordnungszahl.',
+                correct: true,
+                explanation: 'Richtig! Zehntel, Hundertstel und Tausendstel basieren auf Ordnungszahlen.'
+            },
+            {
+                text: 'Für 1,5 sagt man im Russischen "одна целых пять десятых".',
+                correct: false,
+                explanation: 'Falsch! Es heißt "одна целая", da 1 im Russischen den Nominativ Singular verlangt.'
+            },
+            {
+                text: 'Die russischen Bezeichnungen für Brüche sind weiblich, weil sie sich auf "единица" (Einheit) beziehen.',
+                correct: true,
+                explanation: 'Richtig! Das ist der grammatikalische Hintergrund für das weibliche Geschlecht.'
+            },
+            {
+                text: 'Bei 0,001 sagt man "ноль целых одна тысячных".',
+                correct: false,
+                explanation: 'Falsch! Es muss "одна тысячная" (Singular) heißen.'
+            }
+        ];
+
+        let currentIndex = 0;
+        let score = 0;
+
+        function initQuiz() {
+            currentIndex = 0;
+            score = 0;
+            document.getElementById('question-screen').style.display = 'block';
+            document.getElementById('result-screen').style.display = 'none';
+            showQuestion();
+        }
+
+        function showQuestion() {
+            const q = questions[currentIndex];
+            document.getElementById('statement').textContent = q.text;
+            document.getElementById('progress').style.width = (currentIndex / questions.length) * 100 + '%';
+            
+            // Reset UI
+            document.getElementById('feedback').style.display = 'none';
+            document.getElementById('next-btn').style.display = 'none';
+            enableButtons(true);
+        }
+
+        function handleAnswer(userAnswer) {
+            const q = questions[currentIndex];
+            const feedback = document.getElementById('feedback');
+            enableButtons(false);
+
+            feedback.style.display = 'block';
+            if (userAnswer === q.correct) {
+                score++;
+                feedback.textContent = "✅ " + q.explanation;
+                feedback.style.backgroundColor = "#eafaf1";
+                feedback.style.color = "#155724";
+            } else {
+                feedback.textContent = "❌ " + q.explanation;
+                feedback.style.backgroundColor = "#fdecea";
+                feedback.style.color = "#721c24";
+            }
+
+            document.getElementById('next-btn').style.display = 'inline-block';
+        }
+
+        function nextQuestion() {
+            currentIndex++;
+            if (currentIndex < questions.length) {
+                showQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            document.getElementById('question-screen').style.display = 'none';
+            document.getElementById('result-screen').style.display = 'block';
+            document.getElementById('progress').style.width = '100%';
+            document.getElementById('final-score').textContent = score + "/" + questions.length;
+            
+            let msg = "";
+            if (score === 10) msg = "Perfekt! Du bist ein Profi für russische Bruchzahlen! 🏆";
+            else if (score >= 7) msg = "Sehr gut! Du hast die meisten Regeln verstanden. 👏";
+            else msg = "Guter Versuch! Schau dir die Regeln für Singular und Plural noch einmal an. 📖";
+            
+            document.getElementById('result-text').textContent = msg;
+        }
+
+        function enableButtons(status) {
+            const btns = document.querySelectorAll('.quiz-btn');
+            btns.forEach(b => b.disabled = !status);
+        }
+
+        function restartQuiz() {
+            initQuiz();
+        }
+
+        // Start
+        initQuiz();
+    </script>
+</body>
+</html>
