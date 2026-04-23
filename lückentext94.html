@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russische Dezimalzahlen: Dropdown-Quiz</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --bg-color: #f4f7f9;
+            --card-bg: #ffffff;
+            --correct-bg: #d4edda;
+            --correct-border: #28a745;
+            --wrong-bg: #f8d7da;
+            --wrong-border: #dc3545;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--primary-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            max-width: 600px;
+        }
+
+        h1 {
+            font-size: 1.6rem;
+            margin-bottom: 10px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .exercise-card {
+            background: var(--card-bg);
+            padding: 15px 20px;
+            margin-bottom: 12px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            line-height: 2.8;
+            border-left: 6px solid var(--accent-color);
+        }
+
+        .number-badge {
+            font-weight: bold;
+            background: var(--primary-color);
+            color: white;
+            padding: 2px 10px;
+            border-radius: 6px;
+            margin-right: 15px;
+            min-width: 60px;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        select {
+            padding: 8px 30px 8px 12px;
+            margin: 0 6px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            outline: none;
+            background-color: #fff;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 14px;
+            transition: all 0.3s;
+        }
+
+        /* Sofortiges Feedback */
+        select.correct {
+            background-color: var(--correct-bg);
+            border-color: var(--correct-border);
+            color: #155724;
+        }
+
+        select.wrong {
+            background-color: var(--wrong-bg);
+            border-color: var(--wrong-border);
+            color: #721c24;
+        }
+
+        .controls {
+            margin-top: 30px;
+            margin-bottom: 50px;
+        }
+
+        .btn-restart {
+            padding: 15px 40px;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3);
+            transition: all 0.3s;
+        }
+
+        .btn-restart:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(52, 152, 219, 0.4);
+        }
+
+        .btn-restart:active {
+            transform: translateY(0);
+        }
+
+        @media (max-width: 600px) {
+            .exercise-card {
+                padding: 15px;
+                line-height: 3.5;
+            }
+            h1 { font-size: 1.3rem; }
+            select { margin: 5px 2px; width: 100%; max-width: 200px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Russische Dezimalzahlen</h1>
+    <p>Wähle die richtige Form für Ganze und Nachkommastellen.</p>
+</header>
+
+<div class="container" id="quiz-container">
+    <!-- Aufgaben werden hier generiert -->
+</div>
+
+<div class="controls">
+    <button class="btn-restart" onclick="restartQuiz()">Neustart</button>
+</div>
+
+<script>
+    const questions = [
+        { num: "0,1", start: "ноль", opt1: ["целая", "целых"], ans1: "целых", mid: "одна", opt2: ["десятая", "десятых"], ans2: "десятая" },
+        { num: "0,5", start: "ноль", opt1: ["целая", "целых"], ans1: "целых", mid: "пять", opt2: ["десятая", "десятых"], ans2: "десятых" },
+        { num: "1,1", start: "одна", opt1: ["целая", "целых"], ans1: "целая", mid: "одна", opt2: ["десятая", "десятых"], ans2: "десятая" },
+        { num: "2,2", start: "две", opt1: ["целая", "целых"], ans1: "целых", mid: "две", opt2: ["десятая", "десятых"], ans2: "десятых" },
+        { num: "0,01", start: "ноль", opt1: ["целая", "целых"], ans1: "целых", mid: "одна", opt2: ["сотая", "сотых"], ans2: "сотая" },
+        { num: "3,04", start: "три", opt1: ["целая", "целых"], ans1: "целых", mid: "четыре", opt2: ["сотая", "сотых"], ans2: "сотых" },
+        { num: "10,001", start: "десять", opt1: ["целая", "целых"], ans1: "целых", mid: "одна", opt2: ["тысячная", "тысячных"], ans2: "тысячная" },
+        { num: "21,1", start: "двадцать одна", opt1: ["целая", "целых"], ans1: "целая", mid: "одна", opt2: ["десятая", "десятых"], ans2: "десятая" }
+    ];
+
+    function renderQuiz() {
+        const container = document.getElementById('quiz-container');
+        container.innerHTML = questions.map((q, i) => `
+            <div class="exercise-card">
+                <span class="number-badge">${q.num}</span>
+                <span>${q.start}</span>
+                <select onchange="validate(this, '${q.ans1}')">
+                    <option value="">...</option>
+                    ${q.opt1.map(o => `<option value="${o}">${o}</option>`).join('')}
+                </select>
+                <span>${q.mid}</span>
+                <select onchange="validate(this, '${q.ans2}')">
+                    <option value="">...</option>
+                    ${q.opt2.map(o => `<option value="${o}">${o}</option>`).join('')}
+                </select>
+            </div>
+        `).join('');
+    }
+
+    function validate(element, correctAnswer) {
+        if (element.value === "") {
+            element.classList.remove('correct', 'wrong');
+            return;
+        }
+        
+        if (element.value === correctAnswer) {
+            element.classList.add('correct');
+            element.classList.remove('wrong');
+        } else {
+            element.classList.add('wrong');
+            element.classList.remove('correct');
+        }
+    }
+
+    function restartQuiz() {
+        // Einfaches Neu-Rendern löscht alle Zustände
+        renderQuiz();
+        // Scrollt nach oben für eine bessere UX
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Initialer Start
+    renderQuiz();
+</script>
+
+</body>
+</html>
