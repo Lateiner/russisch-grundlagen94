@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch Hörverstehen: Dezimalzahlen</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --correct-color: #27ae60;
+            --wrong-color: #e74c3c;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--primary-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .quiz-container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #eee;
+            border-radius: 4px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent-color);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* Audio Button */
+        .audio-btn {
+            background: var(--accent-color);
+            color: white;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-size: 2rem;
+            margin-bottom: 30px;
+            transition: transform 0.2s, background 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4);
+        }
+
+        .audio-btn:hover {
+            background: #2980b9;
+            transform: scale(1.05);
+        }
+
+        .audio-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Options Grid */
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .option-card {
+            background: #f8f9fa;
+            border: 2px solid #ddd;
+            padding: 20px 10px;
+            border-radius: 12px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .option-card:hover {
+            border-color: var(--accent-color);
+            background: #fff;
+        }
+
+        .option-card.correct {
+            background-color: var(--correct-color) !important;
+            border-color: var(--correct-color) !important;
+            color: white;
+        }
+
+        .option-card.wrong {
+            background-color: var(--wrong-color) !important;
+            border-color: var(--wrong-color) !important;
+            color: white;
+        }
+
+        .feedback {
+            margin-top: 20px;
+            font-weight: bold;
+            min-height: 1.5em;
+        }
+
+        button.btn-next {
+            margin-top: 20px;
+            padding: 12px 30px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            display: none;
+        }
+
+        /* Intro Screen */
+        #intro-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .btn-start {
+            padding: 15px 40px;
+            background: var(--correct-color);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(39, 174, 96, 0.3);
+        }
+
+        @media (max-width: 480px) {
+            .options-grid { grid-template-columns: 1fr; }
+            .option-card { padding: 15px; font-size: 1.3rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <header style="text-align:center; margin-bottom:10px;">
+        <h1>Hörverstehen</h1>
+        <p>Klicke auf die Zahl, die du hörst.</p>
+    </header>
+
+    <div class="quiz-container">
+        <!-- Intro Screen -->
+        <div id="intro-screen">
+            <p style="margin-bottom: 20px;">Klicke auf Start, um die Übung zu beginnen.</p>
+            <button class="btn-start" onclick="startQuiz()">Start</button>
+        </div>
+
+        <!-- Quiz Screen (Hidden at start) -->
+        <div id="quiz-screen" style="display:none;">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress"></div>
+            </div>
+
+            <button class="audio-btn" onclick="playAudio()" title="Anhören">
+                <span>🔊</span>
+            </button>
+            <p style="color:#7f8c8d; font-size: 0.9rem; margin-bottom: 20px;">(Klicke auf den Button, um das Audio zu hören)</p>
+
+            <div class="options-grid" id="options">
+                <!-- Optionen werden hier eingefügt -->
+            </div>
+
+            <div class="feedback" id="feedback"></div>
+            <button class="btn-next" id="next-btn" onclick="nextTask()">Nächste Aufgabe</button>
+        </div>
+    </div>
+
+    <script>
+        const tasks = [
+            { audioText: "одна целая две десятых", options: ["1,2", "1,02", "0,12"], correct: "1,2" },
+            { audioText: "ноль целых пять десятых", options: ["0,5", "5,0", "0,05"], correct: "0,5" },
+            { audioText: "две целых три сотых", options: ["2,3", "2,03", "0,23"], correct: "2,03" },
+            { audioText: "ноль целых одна тысячная", options: ["0,1", "0,01", "0,001"], correct: "0,001" },
+            { audioText: "десять целых одна десятая", options: ["10,1", "1,01", "10,01"], correct: "10,1" },
+            { audioText: "три целых четырнадцать сотых", options: ["3,4", "3,14", "0,314"], correct: "3,14" },
+            { audioText: "ноль целых двадцать одна сотая", options: ["0,21", "0,021", "2,1"], correct: "0,21" },
+            { audioText: "одна целая одна сотая", options: ["1,1", "1,01", "0,11"], correct: "1,01" },
+            { audioText: "пять целых две тысячных", options: ["5,2", "5,02", "5,002"], correct: "5,002" },
+            { audioText: "ноль целых семь десятых", options: ["0,7", "7,0", "0,07"], correct: "0,7" }
+        ];
+
+        let currentIndex = 0;
+        let selectedVoice = null;
+        let canClick = true;
+
+        // Versuche eine russische männliche Stimme zu finden
+        function initVoices() {
+            const voices = window.speechSynthesis.getVoices();
+            // Suche nach Russisch + Male/Dmitry/Pavel/Alexander etc.
+            selectedVoice = voices.find(v => v.lang.startsWith('ru') && 
+                (v.name.toLowerCase().includes('male') || v.name.includes('Dmitry') || v.name.includes('Pavel'))) 
+                || voices.find(v => v.lang.startsWith('ru')); // Fallback auf irgendeine russische Stimme
+        }
+
+        // Stimmen laden (Chrome braucht das Event)
+        window.speechSynthesis.onvoiceschanged = initVoices;
+
+        function startQuiz() {
+            document.getElementById('intro-screen').style.display = 'none';
+            document.getElementById('quiz-screen').style.display = 'block';
+            initVoices();
+            showTask();
+        }
+
+        function showTask() {
+            canClick = true;
+            const task = tasks[currentIndex];
+            const optionsDiv = document.getElementById('options');
+            const progress = document.getElementById('progress');
+            
+            progress.style.width = (currentIndex / tasks.length) * 100 + '%';
+            optionsDiv.innerHTML = '';
+            document.getElementById('feedback').textContent = '';
+            document.getElementById('next-btn').style.display = 'none';
+
+            task.options.forEach(opt => {
+                const btn = document.createElement('div');
+                btn.className = 'option-card';
+                btn.textContent = opt;
+                btn.onclick = () => checkAnswer(opt, btn);
+                optionsDiv.appendChild(btn);
+            });
+
+            // Automatisch beim Start der Aufgabe abspielen
+            setTimeout(playAudio, 500);
+        }
+
+        function playAudio() {
+            window.speechSynthesis.cancel(); // Vorherige Wiedergabe stoppen
+            const task = tasks[currentIndex];
+            const utterance = new SpeechSynthesisUtterance(task.audioText);
+            utterance.voice = selectedVoice;
+            utterance.lang = 'ru-RU';
+            utterance.rate = 0.8; // Etwas langsamer für besseres Verständnis
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function checkAnswer(selected, element) {
+            if (!canClick) return;
+            
+            const task = tasks[currentIndex];
+            const feedback = document.getElementById('feedback');
+            canClick = false;
+
+            if (selected === task.correct) {
+                element.classList.add('correct');
+                feedback.textContent = "Richtig! 🎉";
+                feedback.style.color = "var(--correct-color)";
+            } else {
+                element.classList.add('wrong');
+                feedback.textContent = "Leider falsch. Die richtige Antwort ist " + task.correct;
+                feedback.style.color = "var(--wrong-color)";
+                
+                // Markiere die richtige Antwort
+                Array.from(document.getElementById('options').children).forEach(child => {
+                    if (child.textContent === task.correct) child.classList.add('correct');
+                });
+            }
+
+            document.getElementById('next-btn').style.display = 'inline-block';
+        }
+
+        function nextTask() {
+            currentIndex++;
+            if (currentIndex < tasks.length) {
+                showTask();
+            } else {
+                showFinal();
+            }
+        }
+
+        function showFinal() {
+            document.getElementById('quiz-screen').innerHTML = `
+                <h2 style="color:var(--correct-color)">Hervorragend!</h2>
+                <p>Du hast alle Hörbeispiele abgeschlossen.</p>
+                <button class="btn-start" style="margin-top:20px" onclick="location.reload()">Nochmal starten</button>
+            `;
+        }
+    </script>
+</body>
+</html>
