@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch: Der große Kontext-Check</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --bg-color: #f4f7f6;
+            --correct-color: #27ae60;
+            --wrong-color: #e74c3c;
+            --card-bg: #ffffff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--primary-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        header { text-align: center; margin-bottom: 20px; }
+
+        .game-container {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Zielbereiche (Kontexte) */
+        .context-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .context-card {
+            background: var(--card-bg);
+            border: 3px dashed #ccc;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .context-card.hover { border-color: var(--accent-color); background: #f0f8ff; }
+        .context-card.filled { border-style: solid; border-color: var(--correct-color); background: #f0fff4; }
+
+        .icon { font-size: 2.5rem; margin-bottom: 10px; }
+        .label { font-weight: bold; font-size: 1rem; color: #7f8c8d; margin-bottom: 5px; }
+        .example { font-size: 1.4rem; font-weight: bold; background: #eee; padding: 4px 12px; border-radius: 5px; }
+
+        /* Wort-Bank */
+        .word-bank {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .word-tile {
+            background: var(--accent-color);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+        }
+
+        .word-tile:hover { transform: translateY(-3px); background: #2980b9; }
+        .word-tile.selected { outline: 4px solid var(--primary-color); transform: scale(1.05); }
+        .word-tile.matched { opacity: 0; pointer-events: none; }
+
+        .placed-word {
+            margin-top: 10px;
+            background: var(--correct-color);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 5px;
+            font-weight: bold;
+            animation: popIn 0.3s ease-out;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .feedback {
+            text-align: center;
+            font-weight: bold;
+            min-height: 1.5em;
+            margin-top: 10px;
+        }
+
+        .btn-restart {
+            margin: 20px auto;
+            padding: 12px 30px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            display: none;
+        }
+
+        @media (max-width: 600px) {
+            .context-grid { grid-template-columns: 1fr; }
+            .icon { font-size: 2rem; }
+            .example { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Der große Kontext-Check</h1>
+        <p>Welcher Begriff passt zu welchem Symbol?</p>
+    </header>
+
+    <div class="game-container">
+        <div class="context-grid" id="contexts">
+            <!-- Ziel: Adressen -->
+            <div class="context-card" data-match="дробь">
+                <div class="icon">🏠</div>
+                <div class="label">Adresse / Hausnummer</div>
+                <div class="example">дом 83/2</div>
+            </div>
+
+            <!-- Ziel: Dezimalzahlen -->
+            <div class="context-card" data-match="целых">
+                <div class="icon">🧪</div>
+                <div class="label">Dezimalzahl (Mathe/Labor)</div>
+                <div class="example">0,5</div>
+            </div>
+
+            <!-- Ziel: Brüche -->
+            <div class="context-card" data-match="одна вторая">
+                <div class="icon">📐</div>
+                <div class="label">Mathematischer Bruch</div>
+                <div class="example">1/2</div>
+            </div>
+
+            <!-- Ziel: Alltag/Menge -->
+            <div class="context-card" data-match="полтора">
+                <div class="icon">🍎</div>
+                <div class="label">Alltagsmenge (Anderthalb)</div>
+                <div class="example">1,5 kg</div>
+            </div>
+        </div>
+
+        <div class="feedback" id="feedback"></div>
+
+        <div class="word-bank" id="word-bank">
+            <div class="word-tile" onclick="selectWord(this)">дробь</div>
+            <div class="word-tile" onclick="selectWord(this)">целых</div>
+            <div class="word-tile" onclick="selectWord(this)">одна вторая</div>
+            <div class="word-tile" onclick="selectWord(this)">полтора</div>
+        </div>
+
+        <button class="btn-restart" id="restart-btn" onclick="location.reload()">Neustart</button>
+    </div>
+
+    <script>
+        let selectedTile = null;
+        let matchedCount = 0;
+
+        function selectWord(tile) {
+            if (selectedTile) selectedTile.classList.remove('selected');
+            
+            if (selectedTile === tile) {
+                selectedTile = null;
+            } else {
+                selectedTile = tile;
+                selectedTile.classList.add('selected');
+            }
+        }
+
+        const cards = document.querySelectorAll('.context-card');
+        cards.forEach(card => {
+            card.onclick = () => {
+                if (!selectedTile) return;
+                
+                const word = selectedTile.textContent;
+                const correctWord = card.getAttribute('data-match');
+
+                if (word === correctWord) {
+                    // RICHTIG
+                    card.classList.add('filled');
+                    const display = document.createElement('div');
+                    display.className = 'placed-word';
+                    display.textContent = word;
+                    card.appendChild(display);
+                    
+                    selectedTile.classList.add('matched');
+                    selectedTile = null;
+                    matchedCount++;
+                    
+                    document.getElementById('feedback').textContent = "Richtig zugeordnet! 🎉";
+                    document.getElementById('feedback').style.color = "var(--correct-color)";
+                    
+                    if (matchedCount === 4) {
+                        document.getElementById('feedback').textContent = "Hervorragend! Du kennst alle Kontexte. 🏆";
+                        document.getElementById('restart-btn').style.display = 'block';
+                    }
+                } else {
+                    // FALSCH
+                    card.style.borderColor = "var(--wrong-color)";
+                    document.getElementById('feedback').textContent = "Das passt hier nicht. Probier einen anderen Kontext!";
+                    document.getElementById('feedback').style.color = "var(--wrong-color)";
+                    
+                    setTimeout(() => {
+                        if (!card.classList.contains('filled')) {
+                            card.style.borderColor = "#ccc";
+                        }
+                    }, 1000);
+                }
+            };
+        });
+    </script>
+</body>
+</html>
