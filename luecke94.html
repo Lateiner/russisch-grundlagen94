@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch: Lückentext Kontext-Check</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --correct-color: #27ae60;
+            --wrong-color: #e74c3c;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--primary-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .quiz-container {
+            width: 100%;
+            max-width: 700px;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .instruction {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+        }
+
+        .q-card {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border-left: 5px solid var(--accent-color);
+        }
+
+        .sentence {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .blank {
+            display: inline-block;
+            min-width: 100px;
+            border-bottom: 2px solid var(--accent-color);
+            text-align: center;
+            font-weight: bold;
+            color: var(--accent-color);
+            padding: 0 10px;
+        }
+
+        /* Options Buttons */
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .opt-btn {
+            padding: 10px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .opt-btn:hover:not(.disabled) {
+            border-color: var(--accent-color);
+            background: #f0f8ff;
+        }
+
+        .opt-btn.correct {
+            background-color: var(--correct-color);
+            border-color: var(--correct-color);
+            color: white;
+        }
+
+        .opt-btn.wrong {
+            background-color: var(--wrong-color);
+            border-color: var(--wrong-color);
+            color: white;
+        }
+
+        .opt-btn.disabled {
+            cursor: default;
+            opacity: 0.7;
+        }
+
+        .controls {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .btn-restart {
+            padding: 12px 30px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            display: none;
+        }
+
+        @media (max-width: 500px) {
+            .options-grid { grid-template-columns: 1fr; }
+            .quiz-container { padding: 15px; }
+            .sentence { font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="quiz-container">
+        <h1>Kontext-Lückentext</h1>
+        <p class="instruction">Klicke auf das richtige Wort, um die Lücke im Satz zu füllen.</p>
+
+        <div id="quiz-area">
+            <!-- Fragen werden hier generiert -->
+        </div>
+
+        <div class="controls">
+            <button class="btn-restart" id="restart" onclick="location.reload()">Neustart</button>
+        </div>
+    </div>
+
+    <script>
+        const tasks = [
+            {
+                id: 0,
+                sentence: "In der Adresse <b>дом 5/1</b> liest man das Zeichen '/' als:",
+                options: ["вторая", "дробь", "целая"],
+                correct: "дробь"
+            },
+            {
+                id: 1,
+                sentence: "In der Mathematik liest man <b>1/2</b> (ein Halb) als:",
+                options: ["одна вторая", "одна дробь", "одна целая"],
+                correct: "одна вторая"
+            },
+            {
+                id: 2,
+                sentence: "Bei der Dezimalzahl <b>0,5</b> liest man das Komma als:",
+                options: ["дробь", "вторая", "целых"],
+                correct: "целых"
+            },
+            {
+                id: 3,
+                sentence: "In der Adresse <b>дом 83/2</b> sagt man: 'восемьдесят три ... два'.",
+                options: ["целая", "дробь", "вторая"],
+                correct: "дробь"
+            },
+            {
+                id: 4,
+                sentence: "In der Mathematik bei <b>2/3</b> sagt man: 'две ...'.",
+                options: ["третьих", "дробь", "целых"],
+                correct: "третьих"
+            },
+            {
+                id: 5,
+                sentence: "Beim Gewicht <b>1,5 kg</b> sagt man im Alltag oft einfach:",
+                options: ["одна дробь", "одна вторая", "полтора"],
+                correct: "полтора"
+            }
+        ];
+
+        function initQuiz() {
+            const area = document.getElementById('quiz-area');
+            area.innerHTML = tasks.map((t, idx) => `
+                <div class="q-card" id="card-${idx}">
+                    <div class="sentence">
+                        ${t.sentence} <span class="blank" id="blank-${idx}">?</span>
+                    </div>
+                    <div class="options-grid" id="options-${idx}">
+                        ${t.options.map(opt => `
+                            <button class="opt-btn" onclick="checkAnswer(${idx}, '${opt}', this)">${opt}</button>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        let solvedCount = 0;
+
+        function checkAnswer(taskIdx, selected, btn) {
+            const task = tasks[taskIdx];
+            const blank = document.getElementById(`blank-${taskIdx}`);
+            const buttons = document.querySelectorAll(`#options-${taskIdx} .opt-btn`);
+
+            if (selected === task.correct) {
+                // RICHTIG
+                btn.classList.add('correct');
+                blank.textContent = selected;
+                blank.style.color = 'var(--correct-color)';
+                
+                // Andere Buttons deaktivieren
+                buttons.forEach(b => {
+                    b.classList.add('disabled');
+                    b.onclick = null;
+                });
+                
+                solvedCount++;
+                if (solvedCount === tasks.length) {
+                    document.getElementById('restart').style.display = 'inline-block';
+                }
+            } else {
+                // FALSCH
+                btn.classList.add('wrong');
+                setTimeout(() => {
+                    btn.classList.remove('wrong');
+                }, 800);
+            }
+        }
+
+        initQuiz();
+    </script>
+</body>
+</html>
