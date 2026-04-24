@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch: Brüche verbinden</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --bg-color: #fdfdfd;
+            --correct-color: #27ae60;
+            --wrong-color: #e74c3c;
+            --text-color: #333;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        header {
+            text-align: center;
+            margin: 20px 0;
+            max-width: 600px;
+        }
+
+        .game-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            justify-content: space-between;
+            padding: 20px 0;
+            margin-top: 20px;
+        }
+
+        /* SVG Overlay für Linien */
+        #line-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Klicks durchlassen */
+            z-index: 1;
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 40%;
+            z-index: 2; /* Über der Linie */
+        }
+
+        .word-node {
+            background: white;
+            border: 2px solid #ddd;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            user-select: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            position: relative;
+            font-size: 1.1rem;
+        }
+
+        /* Verbindungspunkte (Dots) */
+        .node-dot {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #ccc;
+            border-radius: 50%;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .left-col .node-dot { right: -6px; }
+        .right-col .node-dot { left: -6px; }
+
+        .word-node:hover {
+            border-color: var(--accent-color);
+            background: #f7fbff;
+        }
+
+        .word-node.selected {
+            border-color: var(--accent-color);
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .word-node.correct {
+            border-color: var(--correct-color);
+            background: #eafaf1;
+            color: var(--correct-color);
+            cursor: default;
+        }
+
+        .word-node.wrong {
+            border-color: var(--wrong-color);
+            background: #fdecea;
+            animation: shake 0.3s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .controls {
+            margin-top: 40px;
+            display: flex;
+            gap: 15px;
+            z-index: 10;
+        }
+
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: white;
+        }
+
+        .btn-restart { background: var(--primary-color); }
+        .btn-solution { background: #95a5a6; }
+
+        @media (max-width: 500px) {
+            .word-node { font-size: 0.9rem; padding: 10px; }
+            .game-wrapper { gap: 40px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Brüche: Logik-Verbindung</h1>
+    <p>Verbinde Zähler (links) mit dem grammatikalisch richtigen Nenner (rechts).</p>
+</header>
+
+<div class="game-wrapper" id="game-container">
+    <svg id="line-svg"></svg>
+
+    <div class="column left-col" id="left-col">
+        <!-- Zähler (Numerators) -->
+    </div>
+
+    <div class="column right-col" id="right-col">
+        <!-- Nenner (Denominators) -->
+    </div>
+</div>
+
+<div class="controls">
+    <button class="btn-solution" onclick="showSolution()">Lösung</button>
+    <button class="btn-restart" onclick="restartGame()">Neustart</button>
+</div>
+
+<script>
+    const pairs = [
+        { id: 1, left: "одна", right: "вторая", rule: "sing" },
+        { id: 2, left: "две", right: "третьих", rule: "plural" },
+        { id: 3, left: "три", right: "четвертых", rule: "plural" },
+        { id: 4, left: "пять", right: "десятых", rule: "plural" },
+        { id: 5, left: "одна", right: "десятая", rule: "sing" },
+        { id: 6, left: "две", right: "пятых", rule: "plural" }
+    ];
+
+    let selectedLeft = null;
+    let selectedRight = null;
+    let connections = []; // Speichert IDs der gefundenen Paare
+
+    function initGame() {
+        const leftCol = document.getElementById('left-col');
+        const rightCol = document.getElementById('right-col');
+        leftCol.innerHTML = '';
+        rightCol.innerHTML = '';
+        connections = [];
+        clearLines();
+
+        // Links mischen (Zähler)
+        const leftItems = [...pairs].sort(() => Math.random() - 0.5);
+        // Rechts mischen (Nenner)
+        const rightItems = [...pairs].sort(() => Math.random() - 0.5);
+
+        leftItems.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'word-node';
+            div.textContent = item.left;
+            div.dataset.id = item.id;
+            div.dataset.side = 'left';
+            div.innerHTML += '<div class="node-dot"></div>';
+            div.onclick = () => selectNode(div);
+            leftCol.appendChild(div);
+        });
+
+        rightItems.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'word-node';
+            div.textContent = item.right;
+            div.dataset.id = item.id;
+            div.dataset.side = 'right';
+            div.innerHTML += '<div class="node-dot"></div>';
+            div.onclick = () => selectNode(div);
+            rightCol.appendChild(div);
+        });
+    }
+
+    function selectNode(node) {
+        if (node.classList.contains('correct')) return;
+
+        const side = node.dataset.side;
+
+        if (side === 'left') {
+            if (selectedLeft) selectedLeft.classList.remove('selected');
+            selectedLeft = node;
+        } else {
+            if (selectedRight) selectedRight.classList.remove('selected');
+            selectedRight = node;
+        }
+        node.classList.add('selected');
+
+        checkMatch();
+    }
+
+    function checkMatch() {
+        if (selectedLeft && selectedRight) {
+            const idLeft = selectedLeft.dataset.id;
+            const idRight = selectedRight.dataset.id;
+
+            // Logik: Wir prüfen hier, ob die ID passt ODER ob die Grammatikregel passt
+            // In dieser Aufgabe lassen wir ID-Matching zu (feste Paare)
+            if (idLeft === idRight) {
+                const pairId = idLeft;
+                selectedLeft.classList.add('correct');
+                selectedRight.classList.add('correct');
+                drawPersistentLine(selectedLeft, selectedRight, pairId);
+                connections.push({left: selectedLeft, right: selectedRight});
+            } else {
+                selectedLeft.classList.add('wrong');
+                selectedRight.classList.add('wrong');
+                const l = selectedLeft; const r = selectedRight;
+                setTimeout(() => {
+                    l.classList.remove('wrong', 'selected');
+                    r.classList.remove('wrong', 'selected');
+                }, 500);
+            }
+            selectedLeft = null;
+            selectedRight = null;
+        }
+    }
+
+    function drawPersistentLine(node1, node2, id) {
+        const svg = document.getElementById('line-svg');
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        
+        const pos1 = getDotCenter(node1);
+        const pos2 = getDotCenter(node2);
+
+        line.setAttribute("x1", pos1.x);
+        line.setAttribute("y1", pos1.y);
+        line.setAttribute("x2", pos2.x);
+        line.setAttribute("y2", pos2.y);
+        line.setAttribute("stroke", "#27ae60");
+        line.setAttribute("stroke-width", "3");
+        line.setAttribute("id", "line-" + id);
+        
+        svg.appendChild(line);
+    }
+
+    function getDotCenter(node) {
+        const dot = node.querySelector('.node-dot');
+        const rect = dot.getBoundingClientRect();
+        const containerRect = document.getElementById('game-container').getBoundingClientRect();
+        
+        return {
+            x: rect.left - containerRect.left + rect.width / 2,
+            y: rect.top - containerRect.top + rect.height / 2
+        };
+    }
+
+    function clearLines() {
+        document.getElementById('line-svg').innerHTML = '';
+    }
+
+    // Linien bei Fenstergrößenänderung neu zeichnen
+    window.addEventListener('resize', () => {
+        clearLines();
+        connections.forEach(conn => {
+            drawPersistentLine(conn.left, conn.right, "res");
+        });
+    });
+
+    function showSolution() {
+        restartGame();
+        const leftNodes = document.querySelectorAll('.left-col .word-node');
+        const rightNodes = document.querySelectorAll('.right-col .word-node');
+
+        leftNodes.forEach(l => {
+            rightNodes.forEach(r => {
+                if (l.dataset.id === r.dataset.id) {
+                    l.classList.add('correct');
+                    r.classList.add('correct');
+                    drawPersistentLine(l, r, "sol-" + l.dataset.id);
+                    connections.push({left: l, right: r});
+                }
+            });
+        });
+    }
+
+    function restartGame() {
+        selectedLeft = null;
+        selectedRight = null;
+        initGame();
+    }
+
+    initGame();
+</script>
+
+</body>
+</html>
