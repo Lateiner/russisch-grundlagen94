@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lernkartei: Russische Bruchzahlen & Vokabeln</title>
+    <style>
+        :root {
+            --primary-green: #2e7d32;
+            --light-green: #a5d6a7;
+            --bg-green: #f1f8e9;
+            --card-front-bg: #ffffff;
+            --card-back-bg: #e8f5e9;
+            --text-color: #1b5e20;
+            --shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-green);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-top: 0;
+            text-align: center;
+            color: var(--primary-green);
+            font-size: 1.8rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .progress {
+            margin-bottom: 15px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: var(--primary-green);
+        }
+
+        /* Flashcard Styles */
+        .flashcard-container {
+            width: 100%;
+            height: 300px;
+            perspective: 1000px;
+            cursor: pointer;
+            margin-bottom: 30px;
+        }
+
+        .flashcard {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+            box-shadow: var(--shadow);
+            border-radius: 20px;
+        }
+
+        .flashcard.is-flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            text-align: center;
+            border-radius: 20px;
+            border: 2px solid var(--light-green);
+        }
+
+        .card-front {
+            background-color: var(--card-front-bg);
+            color: #000;
+        }
+
+        .card-back {
+            background-color: var(--card-back-bg);
+            transform: rotateY(180deg);
+            color: var(--text-color);
+        }
+
+        .vocab-text {
+            word-wrap: break-word;
+            max-width: 100%;
+            transition: font-size 0.2s ease;
+            font-weight: 500;
+        }
+
+        /* Buttons & Controls */
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            width: 100%;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            background-color: var(--primary-green);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .btn:hover {
+            background-color: #1b5e20;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background-color: #689f38;
+        }
+
+        .full-width {
+            grid-column: span 2;
+        }
+
+        /* Keyboard Info */
+        .hints {
+            margin-top: 25px;
+            font-size: 0.85rem;
+            color: #666;
+            text-align: center;
+            line-height: 1.4;
+        }
+
+        @media (max-width: 480px) {
+            .flashcard-container {
+                height: 250px;
+            }
+            .btn {
+                font-size: 0.9rem;
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Lernkartei: Lektion 8</h1>
+    
+    <div class="progress" id="progress">1 / 87</div>
+
+    <div class="flashcard-container" id="cardContainer" aria-label="Karteikarte, zum Umdrehen klicken">
+        <div class="flashcard" id="flashcard">
+            <div class="card-face card-front">
+                <div id="frontText" class="vocab-text">Lade...</div>
+            </div>
+            <div class="card-face card-back">
+                <div id="backText" class="vocab-text">Lade...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn btn-secondary" id="prevBtn">← Vorherige</button>
+        <button class="btn btn-secondary" id="nextBtn">Nächste →</button>
+        <button class="btn full-width" id="shuffleBtn">🔀 Mischen</button>
+        <button class="btn full-width btn-secondary" id="startBtn">🏠 An den Anfang</button>
+    </div>
+
+    <div class="hints">
+        Tastatur: <b>Leertaste/Enter</b> zum Umdrehen | <b>Pfeiltasten</b> für Navigation | <b>Pos1 (Home)</b> für Start
+    </div>
+</div>
+
+<script>
+    // Vokabeldaten
+    const rawData = `1. но́ль – null
+2. число́ – Zahl
+3. числи́тельное – Zahlwort
+4. дро́бное числи́тельное – Bruchzahlwort
+5. дро́бь – Bruch / Schrägstrich
+6. це́лая – Ganzes (Einzahl, weiblich)
+7. це́лых – Ganze (Mehrzahl, Genitiv)
+8. одна́ втора́я – ein Halb
+9. одна́ тре́тья – ein Drittel
+10. две тре́тьих – zwei Drittel
+11. одна́ четвёртая – ein Viertel
+12. три четвёртых – drei Viertel
+13. де́сять – zehn
+14. дес́ятая – Zehntel (Einzahl)
+15. дес́ятых – Zehntel (Mehrzahl)
+16. сто́ – hundert
+17. со́тая – Hundertstel (Einzahl)
+18. со́тых – Hundertstel (Mehrzahl)
+19. ты́сяча – tausend
+20. ты́сячная – Tausendstel (Einzahl)
+21. ты́сячных – Tausendstel (Mehrzahl)
+22. полови́на – Hälfte
+23. тре́ть – Drittel (Substantiv)
+24. че́тверть – Viertel (Substantiv)
+25. полтора́ – anderthalb (männlich / sächlich)
+26. полторы́ – anderthalb (weiblich)
+27. за́пятая – Komma
+28. ци́фра – Ziffer
+29. склоне́ние – Deklination
+30. паде́ж – Fall (Kasus)
+31. ро́д – Geschlecht (Genus)
+32. мужско́й ро́д – männliches Geschlecht
+33. же́нский ро́д – weibliches Geschlecht
+34. сре́дний ро́д – sächliches Geschlecht
+35. еди́нственное число́ – Einzahl (Singular)
+36. мно́жественное число́ – Mehrzahl (Plural)
+37. количе́ственное числи́тельное – Kardinalzahl
+38. поря́дковое числи́тельное – Ordnungszahl
+39. чита́ть / прочита́ть – lesen
+40. писа́ть / написа́ть – schreiben
+41. испо́льзовать (NSV/SV) – verwenden / benutzen
+42. изменя́ть / измени́ть – ändern / verändern
+43. склоня́ть / просклоня́ть – deklinieren
+44. дели́ть / подели́ть – teilen / dividieren
+45. дели́ться / подели́ться – (sich) teilen / mitteilen
+46. называ́ть / назва́ть – nennen / bezeichnen
+47. счита́ть / посчита́ть – zählen / rechnen / glauben
+48. добавля́ть / доба́вить – hinzufügen
+49. налива́ть / нали́ть – eingießen / füllen
+50. покупа́ть / купи́ть – kaufen
+51. находи́ть / найти́ – finden
+52. иска́ть / поиска́ть – suchen
+53. реза́ть / разре́зать – schneiden / zerschneiden
+54. брать / взя́ть – nehmen
+55. матема́тика – Mathematik
+56. фи́зика – Physik
+57. уче́бник – Lehrbuch
+58. адре́с – Adresse
+59. до́м – Haus
+60. у́лица – Straße
+61. вре́мя – Zeit
+62. кусо́к – Stück
+63. ча́сть – Teil
+64. реце́пт – Rezept
+65. ингредие́нт – Zutat
+66. молоко́ – Milch
+67. я́блоко – Apfel
+68. гру́ша – Birne
+69. лимо́н – Zitrone
+70. апельси́н – Orange
+71. то́рт – Torte
+72. пиро́г – Kuchen
+73. бу́лочка – Brötchen
+74. бутербро́д – Sandwich / belegtes Brot
+75. килогра́мм – Kilogramm
+76. ли́тр – Liter
+77. гра́мм – Gramm
+78. со́ль – Salz
+79. ча́с – Stunde
+80. мину́та – Minute
+81. И́ра – Ira
+82. Ле́нин – Lenin
+83. Ми́р – Mir (Frieden / Welt)
+84. Гага́рин – Gagarin
+85. Пу́шкин – Puschkin
+86. Че́хов – Tschechow
+87. Первома́йская – Perwomajskaja (Name einer Straße)`;
+
+    let cards = [];
+    let currentIndex = 0;
+
+    // Parser
+    function parseData() {
+        const lines = rawData.split('\n');
+        cards = lines.map(line => {
+            const parts = line.split(' – ');
+            // Entferne Nummerierung vorne
+            const front = parts[0].replace(/^\d+\.\s*/, '').trim();
+            const back = parts[1].trim();
+            return { front, back };
+        });
+    }
+
+    // State Management
+    function updateDisplay() {
+        const card = cards[currentIndex];
+        const flashcard = document.getElementById('flashcard');
+        const frontEl = document.getElementById('frontText');
+        const backEl = document.getElementById('backText');
+
+        // Karte zurücksetzen (Frontseite zeigen) bevor Text geändert wird
+        flashcard.classList.remove('is-flipped');
+        
+        setTimeout(() => {
+            frontEl.innerHTML = `<b>${card.front}</b>`;
+            backEl.textContent = card.back;
+            
+            adjustFontSize(frontEl);
+            adjustFontSize(backEl);
+            
+            document.getElementById('progress').textContent = `${currentIndex + 1} / ${cards.length}`;
+        }, 150);
+    }
+
+    function adjustFontSize(el) {
+        const len = el.textContent.length;
+        if (len > 50) el.style.fontSize = "1.1rem";
+        else if (len > 25) el.style.fontSize = "1.4rem";
+        else el.style.fontSize = "1.8rem";
+    }
+
+    function flipCard() {
+        document.getElementById('flashcard').classList.toggle('is-flipped');
+    }
+
+    function nextCard() {
+        if (currentIndex < cards.length - 1) {
+            currentIndex++;
+            updateDisplay();
+        }
+    }
+
+    function prevCard() {
+        if (currentIndex > 0) {
+            currentIndex--;
+            updateDisplay();
+        }
+    }
+
+    function shuffleCards() {
+        for (let i = cards.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [cards[i], cards[j]] = [cards[j], cards[i]];
+        }
+        currentIndex = 0;
+        updateDisplay();
+    }
+
+    function goToStart() {
+        currentIndex = 0;
+        updateDisplay();
+    }
+
+    // Event Listeners
+    document.getElementById('cardContainer').addEventListener('click', flipCard);
+    document.getElementById('nextBtn').addEventListener('click', nextCard);
+    document.getElementById('prevBtn').addEventListener('click', prevCard);
+    document.getElementById('shuffleBtn').addEventListener('click', shuffleCards);
+    document.getElementById('startBtn').addEventListener('click', goToStart);
+
+    // Keyboard Events
+    document.addEventListener('keydown', (e) => {
+        switch(e.key) {
+            case ' ':
+            case 'Enter':
+                e.preventDefault(); // Verhindert Scrollen bei Leertaste
+                flipCard();
+                break;
+            case 'ArrowLeft':
+                prevCard();
+                break;
+            case 'ArrowRight':
+                nextCard();
+                break;
+            case 'Home':
+                goToStart();
+                break;
+        }
+    });
+
+    // Init
+    parseData();
+    updateDisplay();
+</script>
+
+</body>
+</html>
