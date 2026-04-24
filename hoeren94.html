@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch Hörverstehen: Adressen (10 Aufgaben)</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #e67e22;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --correct-color: #27ae60;
+            --wrong-color: #e74c3c;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--primary-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #eee;
+            border-radius: 5px;
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent-color);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .audio-btn {
+            background: var(--accent-color);
+            color: white;
+            width: 85px;
+            height: 85px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-size: 2.2rem;
+            margin-bottom: 15px;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 5px 15px rgba(230, 126, 34, 0.3);
+        }
+
+        .audio-btn:hover { transform: scale(1.05); background: #d35400; }
+        .audio-btn:active { transform: scale(0.95); }
+
+        .instruction {
+            color: #7f8c8d;
+            margin-bottom: 25px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .option-btn {
+            background: #fff;
+            border: 2px solid #ddd;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--primary-color);
+        }
+
+        .option-btn:hover:not(.disabled) {
+            border-color: var(--accent-color);
+            background: #fdf7f2;
+        }
+
+        .option-btn.correct {
+            background-color: var(--correct-color) !important;
+            border-color: var(--correct-color) !important;
+            color: white;
+        }
+
+        .option-btn.wrong {
+            background-color: var(--wrong-color) !important;
+            border-color: var(--wrong-color) !important;
+            color: white;
+        }
+
+        .feedback {
+            margin-top: 15px;
+            font-weight: bold;
+            min-height: 1.5em;
+        }
+
+        .btn-action {
+            margin-top: 15px;
+            padding: 12px 30px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            display: none;
+        }
+
+        /* Start Screen */
+        .btn-start {
+            padding: 15px 40px;
+            background: var(--correct-color);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        @media (max-width: 480px) {
+            .container { padding: 20px; }
+            .option-btn { padding: 12px; font-size: 1rem; }
+            h1 { font-size: 1.3rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <header style="text-align:center; margin-bottom:10px;">
+        <h1>Russische Adressen</h1>
+        <p>Hörverstehen: Hausnummern mit <b>дробь</b></p>
+    </header>
+
+    <div class="container">
+        <!-- Intro -->
+        <div id="intro-screen">
+            <p style="margin-bottom: 25px;">Klicke auf Start. Du hörst 10 Adressen.<br>Wähle jeweils die korrekte Schreibweise.</p>
+            <button class="btn-start" onclick="startQuiz()">Spiel starten</button>
+        </div>
+
+        <!-- Quiz -->
+        <div id="quiz-screen" style="display:none;">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress"></div>
+            </div>
+
+            <button class="audio-btn" onclick="playAudio()" title="Nochmal hören">
+                <span>🔊</span>
+            </button>
+            <p class="instruction">Höre die Adresse und achte auf die Hausnummer:</p>
+
+            <div class="options-list" id="options"></div>
+
+            <div class="feedback" id="feedback"></div>
+            <button class="btn-action" id="next-btn" onclick="nextTask()">Nächste Aufgabe</button>
+        </div>
+    </div>
+
+    <script>
+        const tasks = [
+            { text: "улица Ленина, дом десять дробь четыре", opts: ["10/4", "10,4", "10-4"], ans: "10/4" },
+            { text: "проспект Мира, дом восемь дробь два", opts: ["8,2", "8/2", "8-2"], ans: "8/2" },
+            { text: "улица Гагарина, дом сорок два дробь три", opts: ["42/3", "42-3", "42.3"], ans: "42/3" },
+            { text: "Первомайская улица, дом восемьдесят три дробь два", opts: ["83-2", "83,2", "83/2"], ans: "83/2" },
+            { text: "Садовая улица, дом двенадцать дробь один", opts: ["12,1", "12/1", "12.1"], ans: "12/1" },
+            { text: "улица Пушкина, дом семь дробь пять", opts: ["7-5", "7/5", "7,5"], ans: "7/5" },
+            { text: "Ленинградское шоссе, дом пятнадцать дробь три", opts: ["15/3", "15,3", "15-3"], ans: "15/3" },
+            { text: "улица Чехова, дом двадцать один дробь девять", opts: ["21.9", "21-9", "21/9"], ans: "21/9" },
+            { text: "Набережная улица, дом пять дробь десять", opts: ["5/10", "5,10", "5-10"], ans: "5/10" },
+            { text: "улица Строителей, дом тридцать три дробь одиннадцать", opts: ["33-11", "33/11", "33.11"], ans: "33/11" }
+        ];
+
+        let currentIndex = 0;
+        let selectedVoice = null;
+        let canClick = true;
+
+        function initVoices() {
+            const voices = window.speechSynthesis.getVoices();
+            // Suche männliche russische Stimme
+            selectedVoice = voices.find(v => v.lang.startsWith('ru') && 
+                (v.name.toLowerCase().includes('male') || v.name.includes('Dmitry') || v.name.includes('Pavel'))) 
+                || voices.find(v => v.lang.startsWith('ru'));
+        }
+
+        window.speechSynthesis.onvoiceschanged = initVoices;
+
+        function startQuiz() {
+            document.getElementById('intro-screen').style.display = 'none';
+            document.getElementById('quiz-screen').style.display = 'block';
+            initVoices();
+            showTask();
+        }
+
+        function showTask() {
+            canClick = true;
+            const task = tasks[currentIndex];
+            const optionsDiv = document.getElementById('options');
+            const progress = document.getElementById('progress');
+            
+            progress.style.width = ((currentIndex) / tasks.length) * 100 + '%';
+            optionsDiv.innerHTML = '';
+            document.getElementById('feedback').textContent = '';
+            document.getElementById('next-btn').style.display = 'none';
+
+            // Optionen mischen
+            const shuffled = [...task.opts].sort(() => Math.random() - 0.5);
+
+            shuffled.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.textContent = opt;
+                btn.onclick = () => checkAnswer(opt, btn);
+                optionsDiv.appendChild(btn);
+            });
+
+            setTimeout(playAudio, 500);
+        }
+
+        function playAudio() {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(tasks[currentIndex].text);
+            utterance.voice = selectedVoice;
+            utterance.lang = 'ru-RU';
+            utterance.rate = 0.85; 
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function checkAnswer(selected, element) {
+            if (!canClick) return;
+            canClick = false;
+            
+            const task = tasks[currentIndex];
+            const feedback = document.getElementById('feedback');
+
+            if (selected === task.ans) {
+                element.classList.add('correct');
+                feedback.textContent = "Richtig! 'дробь' ist der Schrägstrich /";
+                feedback.style.color = "var(--correct-color)";
+            } else {
+                element.classList.add('wrong');
+                feedback.textContent = "Falsch. In Adressen bedeutet 'дробь' immer /";
+                feedback.style.color = "var(--wrong-color)";
+                
+                // Richtige Lösung zeigen
+                Array.from(document.getElementById('options').children).forEach(btn => {
+                    if (btn.textContent === task.ans) btn.classList.add('correct');
+                });
+            }
+
+            document.getElementById('next-btn').style.display = 'inline-block';
+        }
+
+        function nextTask() {
+            currentIndex++;
+            if (currentIndex < tasks.length) {
+                showTask();
+            } else {
+                showFinal();
+            }
+        }
+
+        function showFinal() {
+            const quizScreen = document.getElementById('quiz-screen');
+            quizScreen.innerHTML = `
+                <h2 style="color:var(--correct-color); margin-bottom:15px;">Hervorragend! 🏠</h2>
+                <p>Du hast alle 10 Adressen erfolgreich bearbeitet.</p>
+                <button class="btn-start" style="margin-top:25px" onclick="location.reload()">Neustart</button>
+            `;
+        }
+    </script>
+</body>
+</html>
