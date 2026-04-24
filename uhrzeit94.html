@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch Uhrzeit-Trainer: 8 Aufgaben</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #e67e22;
+            --bg-color: #f0f4f8;
+            --card-bg: #ffffff;
+            --correct-color: #27ae60;
+            --wrong-color: #e74c3c;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--primary-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #eee;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent-color);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        h1 { font-size: 1.5rem; margin-bottom: 5px; }
+        .instruction { color: #7f8c8d; margin-bottom: 15px; font-size: 0.9rem; }
+
+        /* SVG Analoguhr */
+        #clock-container {
+            margin: 10px auto 20px;
+            width: 180px;
+            height: 180px;
+        }
+
+        .clock-face { fill: white; stroke: var(--primary-color); stroke-width: 4; }
+        .clock-hand { stroke-linecap: round; }
+        .hour-hand { stroke: var(--primary-color); stroke-width: 6; }
+        .minute-hand { stroke: var(--accent-color); stroke-width: 4; }
+        .clock-center { fill: var(--primary-color); }
+        .clock-number { font-size: 14px; font-weight: bold; fill: #555; text-anchor: middle; dominant-baseline: middle; }
+
+        /* Antwort-Optionen */
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .opt-btn {
+            padding: 12px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            color: var(--primary-color);
+        }
+
+        .opt-btn:hover:not(.disabled) {
+            border-color: var(--accent-color);
+            background: #fdf7f2;
+        }
+
+        .opt-btn.correct { background-color: var(--correct-color); border-color: var(--correct-color); color: white; }
+        .opt-btn.wrong { background-color: var(--wrong-color); border-color: var(--wrong-color); color: white; }
+        .opt-btn.disabled { opacity: 0.7; cursor: default; }
+
+        .feedback {
+            margin-top: 15px;
+            font-weight: bold;
+            min-height: 1.5em;
+        }
+
+        .btn-next {
+            margin-top: 15px;
+            padding: 12px 30px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            display: none;
+            width: 100%;
+        }
+
+        @media (max-width: 480px) {
+            .container { padding: 20px; }
+            #clock-container { width: 150px; height: 150px; }
+            .opt-btn { font-size: 1rem; padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+        <h1>Uhrzeit & Brüche</h1>
+        <p class="instruction">Wähle die richtige russische Zeitansage:</p>
+
+        <div id="clock-container">
+            <svg width="100%" height="100%" viewBox="0 0 200 200">
+                <circle class="clock-face" cx="100" cy="100" r="90" />
+                <g id="numbers-group"></g>
+                <line id="hourHand" class="clock-hand hour-hand" x1="100" y1="100" x2="100" y2="60" />
+                <line id="minuteHand" class="clock-hand minute-hand" x1="100" y1="100" x2="100" y2="40" />
+                <circle class="clock-center" cx="100" cy="100" r="4" />
+            </svg>
+        </div>
+
+        <div class="options-list" id="options"></div>
+        <div class="feedback" id="feedback"></div>
+        <button class="btn-next" id="next-btn" onclick="nextTask()">Nächste Aufgabe</button>
+    </div>
+
+    <script>
+        const tasks = [
+            { h: 4, m: 15, correct: "четверть пятого", opts: ["четверть четвертого", "четверть пятого", "четыре пятнадцать"] },
+            { h: 8, m: 30, correct: "половина девятого", opts: ["половина восьмого", "половина девятого", "восемь тридцать"] },
+            { h: 1, m: 15, correct: "четверть второго", opts: ["четверть первого", "четверть второго", "одна вторая"] },
+            { h: 10, m: 30, correct: "половина одиннадцатого", opts: ["половина десятого", "половина одиннадцатого", "десять тридцать"] },
+            { h: 6, m: 15, correct: "четверть седьмого", opts: ["четверть шестого", "четверть седьмого", "шесть пятнадцать"] },
+            { h: 12, m: 30, correct: "половина первого", opts: ["половина двенадцатого", "половина первого", "двенадцать тридцать"] },
+            { h: 2, m: 30, correct: "половина третьего", opts: ["половина второго", "половина третьего", "две тридцать"] },
+            { h: 9, m: 15, correct: "четверть десятого", opts: ["четверть девятого", "четверть десятого", "девять пятнадцать"] }
+        ];
+
+        let currentLevel = 0;
+        let canClick = true;
+
+        function drawClockNumbers() {
+            const group = document.getElementById('numbers-group');
+            for (let i = 1; i <= 12; i++) {
+                const angle = (i * 30) * (Math.PI / 180);
+                const x = 100 + 72 * Math.sin(angle);
+                const y = 100 - 72 * Math.cos(angle);
+                group.innerHTML += `<text x="${x}" y="${y}" class="clock-number">${i}</text>`;
+            }
+        }
+
+        function updateClock(h, m) {
+            const hAngle = (h * 30) + (m * 0.5);
+            const mAngle = m * 6;
+            document.getElementById('hourHand').setAttribute('transform', `rotate(${hAngle}, 100, 100)`);
+            document.getElementById('minuteHand').setAttribute('transform', `rotate(${mAngle}, 100, 100)`);
+        }
+
+        function initTask() {
+            canClick = true;
+            const task = tasks[currentLevel];
+            const optionsDiv = document.getElementById('options');
+            const feedback = document.getElementById('feedback');
+            const progress = document.getElementById('progress');
+
+            optionsDiv.innerHTML = '';
+            feedback.textContent = '';
+            document.getElementById('next-btn').style.display = 'none';
+            progress.style.width = (currentLevel / tasks.length) * 100 + '%';
+
+            updateClock(task.h, task.m);
+
+            // Optionen mischen
+            const shuffledOpts = [...task.opts].sort(() => Math.random() - 0.5);
+
+            shuffledOpts.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'opt-btn';
+                btn.textContent = opt;
+                btn.onclick = () => checkAnswer(opt, btn);
+                optionsDiv.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selected, btn) {
+            if (!canClick) return;
+            canClick = false;
+            
+            const task = tasks[currentLevel];
+            const feedback = document.getElementById('feedback');
+            const buttons = document.querySelectorAll('.opt-btn');
+
+            if (selected === task.correct) {
+                btn.classList.add('correct');
+                feedback.textContent = "Richtig! ✅";
+                feedback.style.color = "var(--correct-color)";
+            } else {
+                btn.classList.add('wrong');
+                feedback.textContent = `Falsch. Richtig ist: ${task.correct}`;
+                feedback.style.color = "var(--wrong-color)";
+                buttons.forEach(b => { if(b.textContent === task.correct) b.classList.add('correct'); });
+            }
+
+            buttons.forEach(b => b.classList.add('disabled'));
+            document.getElementById('next-btn').style.display = 'block';
+        }
+
+        function nextTask() {
+            currentLevel++;
+            if (currentLevel < tasks.length) {
+                initTask();
+            } else {
+                showFinalResult();
+            }
+        }
+
+        function showFinalResult() {
+            document.getElementById('progress').style.width = '100%';
+            document.querySelector('.container').innerHTML = `
+                <h2 style="color:var(--correct-color); margin-bottom:15px;">Super gemacht! 🏆</h2>
+                <p>Du hast alle 8 Zeitangaben mit Brüchen (четверть / половина) gemeistert.</p>
+                <button class="opt-btn" style="margin-top:20px; width:100%; background:var(--primary-color); color:white; border:none;" onclick="location.reload()">Neustart</button>
+            `;
+        }
+
+        // Start
+        drawClockNumbers();
+        initTask();
+    </script>
+</body>
+</html>
