@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch: Brüche sortieren (Sofort-Check)</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --bg-color: #f0f4f8;
+            --correct-color: #27ae60;
+            --wrong-color: #e74c3c;
+            --card-bg: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--primary-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background: #eee;
+            border-radius: 4px;
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--accent-color);
+            width: 16.6%;
+            transition: width 0.4s ease;
+        }
+
+        h1 { font-size: 1.5rem; margin-bottom: 10px; }
+        .instruction { color: #666; margin-bottom: 30px; }
+
+        /* Ziel-Zonen (Slots) */
+        .slots-area {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            min-height: 60px;
+        }
+
+        .slot {
+            flex: 1;
+            height: 60px;
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fafafa;
+            position: relative;
+        }
+
+        .slot::after {
+            content: "➔";
+            position: absolute;
+            right: -12px;
+            color: #ccc;
+            font-size: 0.8rem;
+        }
+        .slot:last-child::after { content: ""; }
+
+        /* Wort-Kacheln */
+        .tile {
+            background: white;
+            border: 2px solid #ddd;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            user-select: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .tile:hover { border-color: var(--accent-color); transform: translateY(-2px); }
+
+        .tile.correct {
+            background-color: var(--correct-color);
+            border-color: var(--correct-color);
+            color: white;
+            cursor: default;
+        }
+
+        .tile.wrong {
+            border-color: var(--wrong-color);
+            background-color: #fdecea;
+            animation: shake 0.4s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
+        }
+
+        .source-area {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .feedback {
+            margin: 20px 0;
+            font-weight: bold;
+            min-height: 1.5em;
+        }
+
+        .btn-next {
+            display: none;
+            padding: 12px 30px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        @media (max-width: 480px) {
+            .container { padding: 20px 15px; }
+            .tile { font-size: 0.85rem; padding: 8px 10px; }
+            .slot { height: 50px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="progress-container">
+            <div class="progress-bar" id="progress"></div>
+        </div>
+        
+        <h1>Größenvergleich</h1>
+        <p class="instruction">Klicke die Brüche in der Reihenfolge von <b>KLEIN</b> nach <b>GROSS</b> an:</p>
+
+        <div class="slots-area" id="target-slots">
+            <!-- Hier landen die korrekten Kacheln -->
+            <div class="slot"></div>
+            <div class="slot"></div>
+            <div class="slot"></div>
+        </div>
+
+        <div class="feedback" id="feedback"></div>
+
+        <div class="source-area" id="source-tiles">
+            <!-- Unsortierte Kacheln -->
+        </div>
+
+        <button class="btn-next" id="next-btn" onclick="nextTask()">Nächste Aufgabe</button>
+    </div>
+
+    <script>
+        const tasks = [
+            { items: [{ t: "одна десятая", v: 0.1 }, { t: "одна пятая", v: 0.2 }, { t: "одна вторая", v: 0.5 }] },
+            { items: [{ t: "одна четвертая", v: 0.25 }, { t: "одна третья", v: 0.33 }, { t: "одна вторая", v: 0.5 }] },
+            { items: [{ t: "одна сотая", v: 0.01 }, { t: "одна десятая", v: 0.1 }, { t: "одна вторая", v: 0.5 }] },
+            { items: [{ t: "одна тысячная", v: 0.001 }, { t: "одна сотая", v: 0.01 }, { t: "одна десятая", v: 0.1 }] },
+            { items: [{ t: "одна восьмая", v: 0.125 }, { t: "одна четвертая", v: 0.25 }, { t: "одна вторая", v: 0.5 }] },
+            { items: [{ t: "одна третья", v: 0.33 }, { t: "две третьих", v: 0.66 }, { t: "одна целая", v: 1.0 }] }
+        ];
+
+        let currentLevel = 0;
+        let placedCount = 0;
+
+        function initLevel() {
+            const task = tasks[currentLevel];
+            const sourceArea = document.getElementById('source-tiles');
+            const slotsArea = document.getElementById('target-slots');
+            const feedback = document.getElementById('feedback');
+            const nextBtn = document.getElementById('next-btn');
+            const progressBar = document.getElementById('progress');
+
+            placedCount = 0;
+            sourceArea.innerHTML = '';
+            slotsArea.innerHTML = task.items.map(() => '<div class="slot"></div>').join('');
+            feedback.textContent = '';
+            nextBtn.style.display = 'none';
+            progressBar.style.width = ((currentLevel + 1) / tasks.length) * 100 + '%';
+
+            // Unsortiert anzeigen
+            const shuffled = [...task.items].sort(() => Math.random() - 0.5);
+            shuffled.forEach(item => {
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+                tile.textContent = item.t;
+                tile.onclick = () => handleChoice(tile, item, task.items);
+                sourceArea.appendChild(tile);
+            });
+        }
+
+        function handleChoice(tileElement, clickedItem, allItems) {
+            const feedback = document.getElementById('feedback');
+            
+            // Sortiere alle Items mathematisch, um das nächstfolgende zu finden
+            const sorted = [...allItems].sort((a, b) => a.v - b.v);
+            const nextCorrectItem = sorted[placedCount];
+
+            if (clickedItem.v === nextCorrectItem.v) {
+                // RICHTIG
+                const slots = document.querySelectorAll('.slot');
+                tileElement.classList.add('correct');
+                tileElement.onclick = null; // Klick deaktivieren
+                
+                // In den Slot bewegen
+                slots[placedCount].appendChild(tileElement);
+                placedCount++;
+                
+                feedback.textContent = "Richtig!";
+                feedback.style.color = "var(--correct-color)";
+
+                if (placedCount === allItems.length) {
+                    feedback.textContent = "Hervorragend! Die Reihenfolge stimmt.";
+                    document.getElementById('next-btn').style.display = 'inline-block';
+                }
+            } else {
+                // FALSCH
+                tileElement.classList.add('wrong');
+                feedback.textContent = "Das ist nicht der kleinste verfügbare Wert.";
+                feedback.style.color = "var(--wrong-color)";
+                
+                setTimeout(() => {
+                    tileElement.classList.remove('wrong');
+                }, 500);
+            }
+        }
+
+        function nextTask() {
+            currentLevel++;
+            if (currentLevel < tasks.length) {
+                initLevel();
+            } else {
+                showFinal();
+            }
+        }
+
+        function showFinal() {
+            document.querySelector('.container').innerHTML = `
+                <h1 style="color:var(--correct-color)">Geschafft!</h1>
+                <p>Du hast alle 6 Sortier-Aufgaben fehlerfrei gelöst.</p>
+                <button class="btn-next" style="display:inline-block; margin-top:20px;" onclick="location.reload()">Neustart</button>
+            `;
+        }
+
+        initLevel();
+    </script>
+</body>
+</html>
