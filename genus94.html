@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch: Genus-Trainer полтора</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --m-color: #2980b9; /* Blau für полтора */
+            --f-color: #9b59b6; /* Lila für полторы */
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --correct-color: #27ae60;
+            --wrong-color: #e74c3c;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--primary-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+            max-width: 600px;
+        }
+
+        .instruction {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+
+        /* Die beiden Zielspalten */
+        .drop-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 30px;
+        }
+
+        .drop-zone {
+            background: var(--card-bg);
+            border: 3px dashed #ccc;
+            border-radius: 15px;
+            padding: 20px;
+            min-height: 250px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .drop-zone.active {
+            border-color: var(--accent-color);
+            background: #f0f8ff;
+        }
+
+        .zone-header {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .m-zone { border-bottom: 8px solid var(--m-color); }
+        .f-zone { border-bottom: 8px solid var(--f-color); }
+
+        .gender-label {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+
+        /* Wort-Bank */
+        .word-bank {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        .word-card {
+            background: var(--primary-color);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .word-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .word-card.selected {
+            background: var(--accent-color);
+            outline: 4px solid var(--primary-color);
+        }
+
+        /* Platzierte Wörter */
+        .placed-word {
+            background: #eee;
+            margin: 5px;
+            padding: 5px 12px;
+            border-radius: 5px;
+            font-size: 1rem;
+            animation: popIn 0.3s ease-out;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .feedback {
+            margin-top: 20px;
+            font-weight: bold;
+            min-height: 1.5em;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            background: var(--primary-color);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .drop-container { grid-template-columns: 1fr; }
+            .drop-zone { min-height: 180px; }
+            .zone-header { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Genus-Sortierung: anderthalb</h1>
+    <p>Ordne die Wörter der richtigen Form zu.</p>
+</header>
+
+<div class="instruction">
+    Klicke ein Wort unten an und wähle dann die passende Spalte.<br>
+    <b>полтора</b> = männlich & sächlich | <b>полторы</b> = weiblich
+</div>
+
+<div class="drop-container">
+    <!-- Männlich / Sächlich -->
+    <div class="drop-zone m-zone" id="zone-m" onclick="handleZoneClick('m')">
+        <div class="zone-header">полтора</div>
+        <div class="gender-label">männlich / sächlich</div>
+        <div class="placed-area" id="area-m"></div>
+    </div>
+
+    <!-- Weiblich -->
+    <div class="drop-zone f-zone" id="zone-f" onclick="handleZoneClick('f')">
+        <div class="zone-header">полторы</div>
+        <div class="gender-label">weiblich</div>
+        <div class="placed-area" id="area-f"></div>
+    </div>
+</div>
+
+<div class="feedback" id="feedback"></div>
+
+<div class="word-bank" id="word-bank">
+    <!-- Wörter werden hier generiert -->
+</div>
+
+<button onclick="location.reload()">Neustart</button>
+
+<script>
+    const nouns = [
+        { word: "бутерброда", gender: "m" },
+        { word: "булочки", gender: "f" },
+        { word: "яблока", gender: "n" },
+        { word: "груши", gender: "f" },
+        { word: "лимона", gender: "m" },
+        { word: "чашки", gender: "f" },
+        { word: "стакана", gender: "m" },
+        { word: "ложки", gender: "f" }
+    ];
+
+    let selectedWordObj = null;
+    let selectedElement = null;
+    let correctCount = 0;
+
+    function initGame() {
+        const bank = document.getElementById('word-bank');
+        // Wörter mischen
+        const shuffled = [...nouns].sort(() => Math.random() - 0.5);
+
+        shuffled.forEach(obj => {
+            const div = document.createElement('div');
+            div.className = 'word-card';
+            div.textContent = obj.word;
+            div.onclick = (e) => {
+                e.stopPropagation();
+                selectWord(div, obj);
+            };
+            bank.appendChild(div);
+        });
+    }
+
+    function selectWord(el, obj) {
+        // Vorherige Auswahl entfernen
+        if (selectedElement) selectedElement.classList.remove('selected');
+        
+        selectedElement = el;
+        selectedWordObj = obj;
+        el.classList.add('selected');
+        
+        document.getElementById('feedback').textContent = "Wähle nun eine Spalte!";
+        document.getElementById('feedback').style.color = "var(--accent-color)";
+    }
+
+    function handleZoneClick(zoneGender) {
+        if (!selectedWordObj) return;
+
+        const feedback = document.getElementById('feedback');
+        const isCorrect = (zoneGender === 'f' && selectedWordObj.gender === 'f') || 
+                          (zoneGender === 'm' && (selectedWordObj.gender === 'm' || selectedWordObj.gender === 'n'));
+
+        if (isCorrect) {
+            // Wort in die Spalte schieben
+            const area = document.getElementById('area-' + zoneGender);
+            const placed = document.createElement('div');
+            placed.className = 'placed-word';
+            placed.textContent = selectedWordObj.word;
+            area.appendChild(placed);
+
+            // Aus der Bank entfernen
+            selectedElement.style.display = 'none';
+            
+            feedback.textContent = "Richtig! ✅";
+            feedback.style.color = "var(--correct-color)";
+            
+            correctCount++;
+            if (correctCount === nouns.length) {
+                feedback.textContent = "Hervorragend! Alle Wörter sind richtig sortiert. 🎉";
+            }
+        } else {
+            feedback.textContent = "Leider falsch. Achte auf das Geschlecht des Wortes!";
+            feedback.style.color = "var(--wrong-color)";
+            selectedElement.classList.remove('selected');
+        }
+
+        // Reset Auswahl
+        selectedWordObj = null;
+        selectedElement = null;
+    }
+
+    initGame();
+</script>
+
+</body>
+</html>
