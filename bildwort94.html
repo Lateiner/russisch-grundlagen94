@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch: Sonderformen Bild-Match (8 Aufgaben)</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #9b59b6;
+            --bg-color: #f0f4f8;
+            --card-bg: #ffffff;
+            --correct-color: #27ae60;
+            --wrong-color: #e74c3c;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--primary-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .instruction {
+            max-width: 700px;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 900px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .match-card {
+            background: var(--card-bg);
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100px;
+            text-align: center;
+            user-select: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .match-card:hover {
+            border-color: var(--accent-color);
+            transform: translateY(-2px);
+        }
+
+        .match-card.selected {
+            border-color: var(--accent-color);
+            background-color: #f4ecf7;
+            box-shadow: 0 0 10px rgba(155, 89, 182, 0.3);
+        }
+
+        .match-card.matched {
+            visibility: hidden;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s, visibility 0.5s;
+        }
+
+        .match-card.wrong {
+            border-color: var(--wrong-color);
+            animation: shake 0.4s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .emoji-img {
+            font-size: 2.5rem;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: baseline;
+            gap: 2px;
+        }
+
+        .emoji-img small { font-size: 1.2rem; color: var(--accent-color); font-weight: bold; }
+
+        .vocab-text { font-size: 1.1rem; font-weight: bold; }
+
+        .context-hint { font-size: 0.75rem; color: #7f8c8d; margin-top: 4px; }
+
+        .controls { margin-top: 30px; }
+
+        button {
+            padding: 12px 30px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        #win-msg {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+            font-size: 1.4rem;
+            color: var(--correct-color);
+            font-weight: bold;
+        }
+
+        @media (max-width: 500px) {
+            .game-container { gap: 8px; }
+            .emoji-img { font-size: 2rem; }
+            .emoji-img small { font-size: 1rem; }
+            .vocab-text { font-size: 0.95rem; }
+            .match-card { min-height: 90px; padding: 8px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Sonderformen: 8er-Match</h1>
+        <p>Ordne die Bilder den russischen Wörtern zu.</p>
+    </header>
+
+    <div class="instruction">
+        <b>Wichtig:</b> полтора (m./n.) vs. полторы (w.). <br>
+        Begriffe wie четверть, треть, половина verlangen den Genitiv.
+    </div>
+
+    <div class="game-container">
+        <div class="column" id="images-col"></div>
+        <div class="column" id="words-col"></div>
+    </div>
+
+    <div id="win-msg">Hervorragend! Alle 8 Paare korrekt zugeordnet. 🏆</div>
+
+    <div class="controls">
+        <button onclick="restartGame()">Neustart</button>
+    </div>
+
+    <script>
+        const tasks = [
+            { id: 1, emoji: "🍎", val: "½", label: "1,5 Äpfel (m.)", word: "полтора", hint: "яблока" },
+            { id: 2, emoji: "🍐", val: "½", label: "1,5 Birnen (w.)", word: "полторы", hint: "груши" },
+            { id: 3, emoji: "🍰", val: "¼", label: "Ein Viertel", word: "четверть", hint: "торта" },
+            { id: 4, emoji: "🍕", val: "½", label: "Die Hälfte", word: "половина", hint: "пиццы" },
+            { id: 5, emoji: "🍊", val: "⅓", label: "Ein Drittel", word: "треть", hint: "апельсина" },
+            { id: 6, emoji: "⏰", val: "¼", label: "Viertelstunde", word: "четверть", hint: "часа" },
+            { id: 7, emoji: "🍋", val: "½", label: "1,5 Zitronen (m.)", word: "полтора", hint: "лимона" },
+            { id: 8, emoji: "🥐", val: "½", label: "1,5 Brötchen (w.)", word: "полторы", hint: "булочки" }
+        ];
+
+        let selectedImg = null;
+        let selectedWord = null;
+        let matchesCount = 0;
+
+        function initGame() {
+            const imgCol = document.getElementById('images-col');
+            const wordCol = document.getElementById('words-col');
+            imgCol.innerHTML = '';
+            wordCol.innerHTML = '';
+            matchesCount = 0;
+            document.getElementById('win-msg').style.display = 'none';
+
+            // Mischen
+            const shuffledImgs = [...tasks].sort(() => Math.random() - 0.5);
+            const shuffledWords = [...tasks].sort(() => Math.random() - 0.5);
+
+            shuffledImgs.forEach(task => {
+                const card = document.createElement('div');
+                card.className = 'match-card';
+                card.dataset.id = task.id;
+                card.innerHTML = `<div class="emoji-img">${task.emoji}<small>${task.val}</small></div><div class="context-hint">${task.label}</div>`;
+                card.onclick = () => selectItem(card, 'img');
+                imgCol.appendChild(card);
+            });
+
+            shuffledWords.forEach(task => {
+                const card = document.createElement('div');
+                card.className = 'match-card';
+                card.dataset.id = task.id;
+                card.innerHTML = `<div class="vocab-text">${task.word}</div><div class="context-hint">Beispiel: ${task.hint}</div>`;
+                card.onclick = () => selectItem(card, 'word');
+                wordCol.appendChild(card);
+            });
+        }
+
+        function selectItem(card, type) {
+            if (type === 'img') {
+                if (selectedImg) selectedImg.classList.remove('selected');
+                selectedImg = card;
+            } else {
+                if (selectedWord) selectedWord.classList.remove('selected');
+                selectedWord = card;
+            }
+            card.classList.add('selected');
+
+            if (selectedImg && selectedWord) {
+                // Check Match - wir vergleichen die ID
+                if (selectedImg.dataset.id === selectedWord.dataset.id) {
+                    const sImg = selectedImg;
+                    const sWord = selectedWord;
+                    setTimeout(() => {
+                        sImg.classList.add('matched');
+                        sWord.classList.add('matched');
+                    }, 300);
+                    matchesCount++;
+                    if (matchesCount === tasks.length) {
+                        setTimeout(() => {
+                            document.getElementById('win-msg').style.display = 'block';
+                        }, 800);
+                    }
+                } else {
+                    const sImg = selectedImg;
+                    const sWord = selectedWord;
+                    sImg.classList.add('wrong');
+                    sWord.classList.add('wrong');
+                    setTimeout(() => {
+                        sImg.classList.remove('wrong', 'selected');
+                        sWord.classList.remove('wrong', 'selected');
+                    }, 500);
+                }
+                selectedImg = null;
+                selectedWord = null;
+            }
+        }
+
+        function restartGame() {
+            initGame();
+        }
+
+        initGame();
+    </script>
+</body>
+</html>
