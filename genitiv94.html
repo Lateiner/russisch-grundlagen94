@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch: Genitiv-Trainer (Misch-Modus)</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --bg-color: #f0f4f8;
+            --card-bg: #ffffff;
+            --correct-bg: #d4edda;
+            --correct-border: #28a745;
+            --wrong-bg: #f8d7da;
+            --wrong-border: #dc3545;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--primary-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 700px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 { font-size: 1.6rem; margin-bottom: 10px; }
+        
+        .rule-hint {
+            background: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 5px solid var(--accent-color);
+            font-size: 0.95rem;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .exercise-card {
+            background: var(--card-bg);
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            line-height: 2.5;
+            font-size: 1.1rem;
+        }
+
+        .sentence-part { margin: 0 5px; }
+
+        select {
+            padding: 8px 30px 8px 10px;
+            margin: 0 8px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            appearance: none;
+            background-color: #fff;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 14px;
+            transition: all 0.3s;
+            color: var(--primary-color);
+        }
+
+        select.correct {
+            background-color: var(--correct-bg);
+            border-color: var(--correct-border);
+            color: #155724;
+        }
+
+        select.wrong {
+            background-color: var(--wrong-bg);
+            border-color: var(--wrong-border);
+            color: #721c24;
+        }
+
+        .controls {
+            margin-top: 30px;
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .btn-restart {
+            padding: 15px 40px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn-restart:active { transform: scale(0.95); }
+
+        @media (max-width: 600px) {
+            .exercise-card { padding: 15px; font-size: 1rem; line-height: 3; }
+            select { width: 100%; max-width: 280px; margin: 10px 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Genitiv-Trainer</h1>
+        <p>Ergänze die richtige Form (Genitiv Singular).</p>
+    </header>
+
+    <div class="rule-hint">
+        <b>💡 Regel-Check:</b> Nach <i>четверть, треть, половина, полтора</i> folgt das Substantiv immer im <b>Genitiv Singular</b>.
+    </div>
+
+    <div id="quiz-container">
+        <!-- Aufgaben werden hier generiert -->
+    </div>
+
+    <div class="controls">
+        <button class="btn-restart" onclick="resetQuiz()">Neustart & Mischen</button>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        { start: "Дай мне треть", options: ["торт", "торта", "торты"], correct: "торта" },
+        { start: "Мы ждали четверть", options: ["час", "часа", "часы"], correct: "часа" },
+        { start: "Отрежь половину", options: ["пирог", "пирога", "пироги"], correct: "пирога" },
+        { start: "Дай мне половину", options: ["яблоко", "яблока", "яблоки"], correct: "яблока" },
+        { start: "Съешь треть", options: ["апельсин", "апельсина", "апельсины"], correct: "апельсина" },
+        { start: "У нас есть полтора", options: ["килограмм", "килограмма", "килограммы"], correct: "килограмма" },
+        { start: "Я купил полторы", options: ["булочка", "булочки", "булочек"], correct: "булочки" },
+        { start: "Дай мне четверть", options: ["груша", "груши", "груш"], correct: "груши" }
+    ];
+
+    // Helper-Funktion zum Mischen von Arrays
+    function shuffleArray(array) {
+        const newArr = [...array];
+        for (let i = newArr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
+        }
+        return newArr;
+    }
+
+    function renderQuiz() {
+        const container = document.getElementById('quiz-container');
+        container.innerHTML = ''; // Container leeren
+
+        questions.forEach((q, i) => {
+            // Optionen für jede Frage individuell mischen
+            const shuffledOptions = shuffleArray(q.options);
+            
+            const card = document.createElement('div');
+            card.className = 'exercise-card';
+            
+            card.innerHTML = `
+                <span class="sentence-part">${q.start}</span>
+                <select onchange="checkAnswer(this, '${q.correct}')">
+                    <option value="">...</option>
+                    ${shuffledOptions.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+                </select>
+                <span class="sentence-part">.</span>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    function checkAnswer(selectElement, correctAnswer) {
+        if (selectElement.value === "") {
+            selectElement.classList.remove('correct', 'wrong');
+            return;
+        }
+
+        if (selectElement.value === correctAnswer) {
+            selectElement.classList.add('correct');
+            selectElement.classList.remove('wrong');
+        } else {
+            selectElement.classList.add('wrong');
+            selectElement.classList.remove('correct');
+        }
+    }
+
+    function resetQuiz() {
+        renderQuiz();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Initialer Start
+    renderQuiz();
+</script>
+
+</body>
+</html>
