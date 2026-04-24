@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch Profi-Check: Brüche finden</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --correct-color: #2ecc71;
+            --wrong-color: #e74c3c;
+            --chalkboard-bg: #222f3e;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+
+        body {
+            background-color: #f0f2f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .game-header {
+            text-align: center;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 20px;
+        }
+
+        /* Das aktuelle Zielwort */
+        #target-display {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent-color);
+            margin: 10px 0;
+            padding: 10px;
+            border: 2px dashed var(--accent-color);
+            border-radius: 10px;
+            background: #f7fbff;
+        }
+
+        .canvas-container {
+            width: 100%;
+            max-width: 800px;
+            perspective: 1000px;
+        }
+
+        .chalkboard {
+            background: var(--chalkboard-bg);
+            border: 10px solid #576574;
+            border-radius: 10px;
+            padding: 30px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 20px;
+            min-height: 400px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .fraction-item {
+            cursor: pointer;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: white;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            transition: all 0.3s;
+            user-select: none;
+        }
+
+        .fraction-item:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateY(-5px);
+        }
+
+        .fraction-item .num { font-size: 1.8rem; border-bottom: 3px solid white; width: 40px; text-align: center; }
+        .fraction-item .den { font-size: 1.8rem; padding-top: 5px; }
+
+        /* Animationen */
+        .correct-hit {
+            animation: pulse-green 0.6s forwards;
+        }
+
+        .wrong-hit {
+            animation: shake 0.4s;
+            border-color: var(--wrong-color);
+        }
+
+        @keyframes pulse-green {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); background: var(--correct-color); }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+
+        .progress-info { font-weight: bold; margin-bottom: 5px; }
+
+        #win-screen {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            color: white;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        button {
+            padding: 12px 30px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 500px) {
+            .chalkboard { grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 15px; }
+            #target-display { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-header">
+        <div class="progress-info">Aufgabe <span id="current-step">1</span> von 8</div>
+        <p>Suche auf der Tafel diesen Bruch:</p>
+        <div id="target-display">Lade...</div>
+    </div>
+
+    <div class="canvas-container">
+        <div class="chalkboard" id="board">
+            <!-- Brüche werden hier generiert -->
+        </div>
+    </div>
+
+    <div id="win-screen">
+        <h1>Ausgezeichnet! 🏆</h1>
+        <p>Du hast alle russischen Bruchbegriffe korrekt zugeordnet.</p>
+        <button onclick="location.reload()">Nochmal spielen</button>
+    </div>
+
+    <script>
+        const quizPairs = [
+            { text: "одна вторая", n: 1, d: 2 },
+            { text: "одна третья", n: 1, d: 3 },
+            { text: "две третьих", n: 2, d: 3 },
+            { text: "одна четвертая", n: 1, d: 4 },
+            { text: "три четвертых", n: 3, d: 4 },
+            { text: "одна пятая", n: 1, d: 5 },
+            { text: "две пятых", n: 2, d: 5 },
+            { text: "одна десятая", n: 1, d: 10 }
+        ];
+
+        // Distraktoren (Falsche Brüche zur Verwirrung)
+        const distractors = [
+            { n: 2, d: 10 }, { n: 5, d: 8 }, { n: 3, d: 10 }, { n: 4, d: 5 }
+        ];
+
+        let currentTargetIndex = 0;
+        let shuffledQuiz = [];
+
+        function initGame() {
+            shuffledQuiz = [...quizPairs].sort(() => Math.random() - 0.5);
+            const board = document.getElementById('board');
+            
+            // Alle Brüche (Ziele + Ablenkungen) mischen
+            const allFractions = [...quizPairs, ...distractors].sort(() => Math.random() - 0.5);
+
+            allFractions.forEach(f => {
+                const div = document.createElement('div');
+                div.className = 'fraction-item';
+                div.innerHTML = `<span class="num">${f.n}</span><span class="den">${f.d}</span>`;
+                div.onclick = () => checkHit(div, f);
+                board.appendChild(div);
+            });
+
+            updateTarget();
+        }
+
+        function updateTarget() {
+            if (currentTargetIndex < shuffledQuiz.length) {
+                document.getElementById('target-display').textContent = shuffledQuiz[currentTargetIndex].text;
+                document.getElementById('current-step').textContent = currentTargetIndex + 1;
+            } else {
+                document.getElementById('win-screen').style.display = 'flex';
+            }
+        }
+
+        function checkHit(element, fraction) {
+            const target = shuffledQuiz[currentTargetIndex];
+
+            if (fraction.n === target.n && fraction.d === target.d) {
+                // RICHTIG
+                element.classList.add('correct-hit');
+                currentTargetIndex++;
+                setTimeout(updateTarget, 600);
+            } else {
+                // FALSCH
+                element.classList.add('wrong-hit');
+                setTimeout(() => element.classList.remove('wrong-hit'), 400);
+            }
+        }
+
+        initGame();
+    </script>
+</body>
+</html>
