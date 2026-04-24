@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch: Brüche Matching</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --bg-color: #f8f9fa;
+            --correct-color: #27ae60;
+            --wrong-color: #e74c3c;
+            --card-bg: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--primary-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .matching-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+
+        @media (max-width: 600px) {
+            .matching-area {
+                gap: 20px;
+            }
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        /* Card Styles */
+        .match-card {
+            background: var(--card-bg);
+            border: 3px solid #ddd;
+            border-radius: 12px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100px;
+            user-select: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .match-card:hover {
+            border-color: var(--accent-color);
+            transform: translateY(-2px);
+        }
+
+        .match-card.selected {
+            border-color: var(--accent-color);
+            background-color: #ebf5fb;
+            box-shadow: 0 0 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .match-card.correct {
+            border-color: var(--correct-color);
+            background-color: #eafaf1;
+            opacity: 0; /* Für den Verschwinden-Effekt */
+            transform: scale(0.8);
+            pointer-events: none;
+        }
+
+        .match-card.wrong {
+            border-color: var(--wrong-color);
+            animation: shake 0.4s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        /* SVG Pie Chart Styles */
+        svg {
+            width: 80px;
+            height: 80px;
+            transform: rotate(-90deg);
+            border-radius: 50%;
+            background: #eee;
+        }
+
+        .pie-slice {
+            fill: var(--accent-color);
+        }
+
+        .word-text {
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .controls {
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-solution { background: #95a5a6; color: white; }
+        .btn-restart { background: var(--primary-color); color: white; }
+
+        #win-msg {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+            color: var(--correct-color);
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Brüche visualisieren</h1>
+    <p>Klicke zuerst ein Diagramm und dann das passende Wort an.</p>
+</header>
+
+<div class="game-container">
+    <div class="matching-area">
+        <div class="column" id="images-col">
+            <!-- Bilder kommen hierhin -->
+        </div>
+        <div class="column" id="words-col">
+            <!-- Wörter kommen hierhin -->
+        </div>
+    </div>
+
+    <div id="win-msg">Ausgezeichnet! Alle Paare gefunden. 🎉</div>
+
+    <div class="controls">
+        <button class="btn-solution" onclick="showSolution()">Lösung anzeigen</button>
+        <button class="btn-restart" onclick="restartGame()">Neustart</button>
+    </div>
+</div>
+
+<script>
+    const data = [
+        { id: 1, fraction: 0.5, text: "одна вторая" },
+        { id: 2, fraction: 0.33, text: "одна третья" },
+        { id: 3, fraction: 0.66, text: "две третьих" },
+        { id: 4, fraction: 0.25, text: "одна четвертая" },
+        { id: 5, fraction: 0.75, text: "три четвертых" },
+        { id: 6, fraction: 0.2, text: "одна пятая" }
+    ];
+
+    let selectedImg = null;
+    let selectedWord = null;
+    let matchedCount = 0;
+
+    function createPieSVG(fraction) {
+        // Erzeugt einen SVG-Pfad für ein Tortenstück
+        const x = Math.cos(2 * Math.PI * fraction);
+        const y = Math.sin(2 * Math.PI * fraction);
+        const largeArcFlag = fraction > 0.5 ? 1 : 0;
+        
+        return `
+            <svg viewBox="-1 -1 2 2">
+                <circle cx="0" cy="0" r="1" fill="#ddd" />
+                <path d="M 1 0 A 1 1 0 ${largeArcFlag} 1 ${x} ${y} L 0 0" class="pie-slice" />
+            </svg>
+        `;
+    }
+
+    function initGame() {
+        const imagesCol = document.getElementById('images-col');
+        const wordsCol = document.getElementById('words-col');
+        const winMsg = document.getElementById('win-msg');
+        
+        imagesCol.innerHTML = '';
+        wordsCol.innerHTML = '';
+        winMsg.style.display = 'none';
+        matchedCount = 0;
+        selectedImg = null;
+        selectedWord = null;
+
+        // Bilder mischen
+        const shuffledImgs = [...data].sort(() => Math.random() - 0.5);
+        // Wörter mischen
+        const shuffledWords = [...data].sort(() => Math.random() - 0.5);
+
+        shuffledImgs.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'match-card';
+            div.dataset.id = item.id;
+            div.innerHTML = createPieSVG(item.fraction);
+            div.onclick = () => selectItem(div, 'img');
+            imagesCol.appendChild(div);
+        });
+
+        shuffledWords.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'match-card';
+            div.dataset.id = item.id;
+            div.innerHTML = `<span class="word-text">${item.text}</span>`;
+            div.onclick = () => selectItem(div, 'word');
+            wordsCol.appendChild(div);
+        });
+    }
+
+    function selectItem(element, type) {
+        if (element.classList.contains('correct')) return;
+
+        // Auswahl-Logik
+        if (type === 'img') {
+            if (selectedImg) selectedImg.classList.remove('selected');
+            selectedImg = element;
+        } else {
+            if (selectedWord) selectedWord.classList.remove('selected');
+            selectedWord = element;
+        }
+        element.classList.add('selected');
+
+        // Check Match
+        if (selectedImg && selectedWord) {
+            if (selectedImg.dataset.id === selectedWord.dataset.id) {
+                handleMatch(selectedImg, selectedWord);
+            } else {
+                handleWrong(selectedImg, selectedWord);
+            }
+            selectedImg = null;
+            selectedWord = null;
+        }
+    }
+
+    function handleMatch(img, word) {
+        img.classList.add('correct');
+        word.classList.add('correct');
+        img.classList.remove('selected');
+        word.classList.remove('selected');
+        
+        matchedCount++;
+        if (matchedCount === data.length) {
+            setTimeout(() => {
+                document.getElementById('win-msg').style.display = 'block';
+            }, 1000);
+        }
+    }
+
+    function handleWrong(img, word) {
+        img.classList.add('wrong');
+        word.classList.add('wrong');
+        
+        setTimeout(() => {
+            img.classList.remove('wrong', 'selected');
+            word.classList.remove('wrong', 'selected');
+        }, 500);
+    }
+
+    function showSolution() {
+        restartGame();
+        const imgs = document.querySelectorAll('#images-col .match-card');
+        const words = document.querySelectorAll('#words-col .match-card');
+        
+        // Farben für Paare vergeben
+        const colors = ['#e74c3c', '#f1c40f', '#9b59b6', '#e67e22', '#1abc9c', '#34495e'];
+        
+        imgs.forEach(img => {
+            const id = img.dataset.id;
+            const color = colors[id - 1];
+            img.style.borderColor = color;
+            
+            words.forEach(word => {
+                if (word.dataset.id === id) {
+                    word.style.borderColor = color;
+                }
+            });
+        });
+    }
+
+    function restartGame() {
+        initGame();
+    }
+
+    // Spielstart
+    initGame();
+</script>
+
+</body>
+</html>
