@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Labor: Das Rezept-Quiz</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #e67e22;
+            --bg-color: #fdfaf6;
+            --card-bg: #ffffff;
+            --correct-color: #27ae60;
+            --wrong-color: #e74c3c;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--primary-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: var(--accent-color);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.3);
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: white;
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+
+        .quiz-content {
+            padding: 30px;
+            text-align: center;
+        }
+
+        /* Visualisierung der Zutat */
+        .recipe-visual {
+            font-size: 4rem;
+            margin-bottom: 10px;
+        }
+
+        .quantity-badge {
+            display: inline-block;
+            background: var(--primary-color);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-bottom: 25px;
+        }
+
+        .sentence-box {
+            font-size: 1.3rem;
+            line-height: 1.5;
+            margin-bottom: 30px;
+            padding: 15px;
+            border-left: 5px solid var(--accent-color);
+            background: #fdfdfd;
+        }
+
+        .blank {
+            color: var(--accent-color);
+            font-weight: bold;
+            border-bottom: 2px dashed var(--accent-color);
+            padding: 0 5px;
+        }
+
+        /* Antwort-Optionen */
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .option-btn {
+            padding: 15px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .option-btn:hover:not(.disabled) {
+            border-color: var(--accent-color);
+            background: #fdf7f2;
+        }
+
+        .option-btn.correct { background: var(--correct-color); border-color: var(--correct-color); color: white; }
+        .option-btn.wrong { background: var(--wrong-color); border-color: var(--wrong-color); color: white; }
+        .option-btn.disabled { cursor: default; }
+
+        .feedback {
+            margin-top: 20px;
+            min-height: 1.5em;
+            font-weight: bold;
+        }
+
+        .btn-next {
+            margin-top: 20px;
+            padding: 12px 40px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            display: none;
+        }
+
+        @media (max-width: 480px) {
+            .quiz-content { padding: 20px; }
+            .sentence-box { font-size: 1.1rem; }
+            .option-btn { padding: 12px; font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h2 id="recipe-title">Кулинарный рецепт</h2>
+            <div class="progress-container">
+                <div class="progress-bar" id="progress"></div>
+            </div>
+        </div>
+
+        <div class="quiz-content">
+            <div class="recipe-visual" id="visual">🥛</div>
+            <div class="quantity-badge" id="quantity">1,5 l</div>
+            
+            <div class="sentence-box">
+                <span id="sentence-start">Налейте</span> 
+                <span class="blank" id="blank">...</span> 
+                <span id="sentence-end">литра молока.</span>
+            </div>
+
+            <div class="options-grid" id="options">
+                <!-- Buttons werden hier geladen -->
+            </div>
+
+            <div class="feedback" id="feedback"></div>
+            <button class="btn-next" id="next-btn" onclick="nextLevel()">Nächste Zutat</button>
+        </div>
+    </div>
+
+    <script>
+        const levels = [
+            {
+                visual: "🥛",
+                quantity: "1,5 l",
+                start: "Налейте",
+                end: "литра молока.",
+                correct: "полтора",
+                options: ["полтора", "полторы", "одна целая пять"],
+                feedback: "Richtig! 'Литра' ist männlich, daher nutzen wir 'полтора'."
+            },
+            {
+                visual: "🍞",
+                quantity: "1,5",
+                start: "Возьмите",
+                end: "булочки.",
+                correct: "полторы",
+                options: ["полтора", "полторы", "две целых"],
+                feedback: "Richtig! 'Булочки' ist weiblich, daher 'полторы'."
+            },
+            {
+                visual: "🍊",
+                quantity: "1/4",
+                start: "Добавьте",
+                end: "апельсина.",
+                correct: "четверть",
+                options: ["четыре", "четвертую", "четверть"],
+                feedback: "Richtig! 'Четверть' (ein Viertel) verlangt den Genitiv."
+            },
+            {
+                visual: "🧂",
+                quantity: "0,1 g",
+                start: "Нужно всего",
+                end: "одна десятая грамма соли.",
+                correct: "ноль целых",
+                options: ["ноль целая", "ноль целых", "ноль целое"],
+                feedback: "Richtig! Bei Null heißt es immer 'ноль целых'."
+            },
+            {
+                visual: "🍰",
+                quantity: "0,5",
+                start: "Разрежьте торт на",
+                end: "две половины.",
+                correct: "две",
+                options: ["два", "две", "двое"],
+                feedback: "Richtig! 'Половина' ist weiblich."
+            },
+            {
+                visual: "🍎",
+                quantity: "1,1 kg",
+                start: "Купите",
+                end: "одна десятая килограмма яблок.",
+                correct: "одна целая",
+                options: ["один целых", "одна целых", "одна целая"],
+                feedback: "Richtig! 'Одна целая' (1,1) im Nominativ/Akkusativ."
+            }
+        ];
+
+        let currentLevel = 0;
+        let canClick = true;
+
+        function loadLevel() {
+            canClick = true;
+            const level = levels[currentLevel];
+            const optionsDiv = document.getElementById('options');
+            const feedbackDiv = document.getElementById('feedback');
+            const nextBtn = document.getElementById('next-btn');
+            const progressBar = document.getElementById('progress');
+
+            // UI-Update
+            document.getElementById('visual').textContent = level.visual;
+            document.getElementById('quantity').textContent = level.quantity;
+            document.getElementById('sentence-start').textContent = level.start;
+            document.getElementById('sentence-end').textContent = level.end;
+            document.getElementById('blank').textContent = "...";
+            
+            optionsDiv.innerHTML = '';
+            feedbackDiv.textContent = '';
+            nextBtn.style.display = 'none';
+            progressBar.style.width = (currentLevel / levels.length) * 100 + '%';
+
+            // Optionen mischen
+            const shuffled = [...level.options].sort(() => Math.random() - 0.5);
+
+            shuffled.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.textContent = opt;
+                btn.onclick = () => checkAnswer(btn, opt);
+                optionsDiv.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(btn, selected) {
+            if (!canClick) return;
+            const level = levels[currentLevel];
+            const feedbackDiv = document.getElementById('feedback');
+            const blank = document.getElementById('blank');
+            const buttons = document.querySelectorAll('.option-btn');
+
+            canClick = false;
+            if (selected === level.correct) {
+                btn.classList.add('correct');
+                blank.textContent = selected;
+                feedbackDiv.textContent = "✅ " + level.feedback;
+                feedbackDiv.style.color = "var(--correct-color)";
+            } else {
+                btn.classList.add('wrong');
+                feedbackDiv.textContent = "❌ Leider nicht richtig.";
+                feedbackDiv.style.color = "var(--wrong-color)";
+                // Richtige Lösung zeigen
+                buttons.forEach(b => {
+                    if (b.textContent === level.correct) b.classList.add('correct');
+                });
+            }
+
+            buttons.forEach(b => b.classList.add('disabled'));
+            document.getElementById('next-btn').style.display = 'inline-block';
+        }
+
+        function nextLevel() {
+            currentLevel++;
+            if (currentLevel < levels.length) {
+                loadLevel();
+            } else {
+                showFinal();
+            }
+        }
+
+        function showFinal() {
+            document.getElementById('progress').style.width = '100%';
+            document.querySelector('.quiz-content').innerHTML = `
+                <div class="recipe-visual">👨‍🍳</div>
+                <h2>Рецепт готов!</h2>
+                <p>Du hast alle Zutaten und Mengen korrekt bestimmt.</p>
+                <button class="option-btn" style="margin-top:20px; width:100%; background:var(--primary-color); color:white;" onclick="location.reload()">Neustart</button>
+            `;
+        }
+
+        // Initialer Start
+        loadLevel();
+    </script>
+</body>
+</html>
